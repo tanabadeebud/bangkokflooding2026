@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Bangkok Flood 2026 - Radar Rainfall Animation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      /* Radar4Flood brand reskin: map the dashboard's existing blue-* utility classes */
+      /* onto the official Radar4Flood palette, and use the same Thai-friendly font.   */
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              blue: { 50:'#F3F9FE', 100:'#E6F1FD', 200:'#BFDDFB', 300:'#93C6F9', 400:'#6AB2F6',
+                      500:'#429FF3', 600:'#1E6FD9', 700:'#14479C', 800:'#0A2E63', 900:'#001E45', 950:'#00132E' }
+            },
+            fontFamily: {
+              sans: ['"IBM Plex Sans Thai"', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+            },
+            borderRadius: { lg: '10px', xl: '14px', '2xl': '18px' }
+          }
+        }
+      }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map-hourly, #map-accumulated { z-index: 1; }
+        input[type="range"]::-webkit-slider-runnable-track { background: transparent; }
+        input[type="range"]::-moz-range-track { background: transparent; }
+        /* ขนาด thumb คงที่ 16px เพื่อให้ขีดเวลาตรงกับตำแหน่งของ slider พอดี */
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 9999px; background: #2563eb; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(15,23,42,.35); }
+        input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 9999px; background: #2563eb; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(15,23,42,.35); }
+        .day-tick { position: absolute; top: 50%; width: 2px; height: 18px; margin-top: -9px; margin-left: -1px; background: #64748b; border-radius: 1px; pointer-events: none; z-index: 5; }
+        .day-label { position: absolute; top: 100%; margin-top: 4px; transform: translateX(-50%); text-align: center; line-height: 1.15; cursor: pointer; white-space: nowrap; z-index: 20; padding: 1px 4px; border-radius: 6px; }
+        .day-label:hover { background: #dbeafe; }
+        .day-label .d { display: block; font-size: 11px; font-weight: 700; color: #334155; }
+        .day-label .t { display: block; font-size: 9px; font-family: ui-monospace, Consolas, monospace; color: #94a3b8; }
+        .day-label.active .d { color: #2563eb; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen md:h-screen md:max-h-screen md:overflow-hidden flex flex-col md:flex-row select-none">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col justify-between p-4 shrink-0 shadow-sm z-30">
+        <div>
+            <a href="https://radar4flood.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-2 py-4 border-b border-slate-100 mb-4 hover:bg-slate-50 rounded-lg transition-colors" title="ไปยังเว็บไซต์ radar4flood.com">
+                <img src="Radar4flood_Icon_PNG.png" alt="Radar4Flood Logo" class="w-10 h-10 object-contain shrink-0">
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-900 data-lang" data-en="Bangkok Flood 2026" data-th="เหตุการณ์น้ำท่วมกรุงเทพมหานคร กันยายน 2569">เหตุการณ์น้ำท่วมกรุงเทพมหานคร กันยายน 2569</h1>
+                    <p class="text-xs text-slate-500 font-medium data-lang" data-en="Event Analysis Dashboard" data-th="แดชบอร์ดวิเคราะห์สถานการณ์">แดชบอร์ดวิเคราะห์สถานการณ์</p>
+                </div>
+            </a>
+
+            <nav class="space-y-1">
+                <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="file-text" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="1. Summary" data-th="1. สรุปภาพรวมเหตุการณ์">1. สรุปภาพรวมเหตุการณ์</span>
+                </a>
+                <a href="weather_data.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="wind" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="2. Weather Data" data-th="2. ข้อมูลสภาพอากาศ">2. ข้อมูลสภาพอากาศ</span>
+                </a>
+                <a href="rainfall_stations.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="cloud-rain" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="3. Rainfall Station Data" data-th="3. ข้อมูลสถานีวัดน้ำฝน">3. ข้อมูลสถานีวัดน้ำฝน</span>
+                </a>
+                <a href="radar_animation.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-blue-700 font-semibold shadow-sm transition-all">
+                    <i data-lucide="play-circle" class="w-5 h-5 text-blue-600"></i>
+                    <span class="data-lang" data-en="4. Radar Rainfall Animation" data-th="4. ภาพเคลื่อนไหวฝนเรดาร์">4. ภาพเคลื่อนไหวฝนเรดาร์</span>
+                </a>
+                <a href="spatial_radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="map-pin" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="5. Spatial Radar Rainfall" data-th="5. ปริมาณฝนเรดาร์เชิงพื้นที่">5. ปริมาณฝนเรดาร์เชิงพื้นที่</span>
+                </a>
+                <a href="daily_radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="calendar-days" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="6. Daily Radar Accumulation" data-th="6. ฝนสะสมรายวันจากเรดาร์">6. ฝนสะสมรายวันจากเรดาร์</span>
+                </a>
+            </nav>
+        </div>
+        <div class="pt-4 border-t border-slate-100 text-center text-xs text-slate-400 font-medium hidden md:block">
+            <p>Bangkok Monitoring Project v1.0</p>
+        </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="flex-1 flex flex-col min-w-0 p-4 md:p-6 space-y-4 h-full md:max-h-full md:overflow-hidden">
+        
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-slate-200 gap-4 shrink-0">
+            <div>
+                <h2 class="text-xl font-bold tracking-tight text-slate-900 data-lang" data-en="10-Min Spatial Radar Rainfall Map (Bangkok)" data-th="ข้อมูลฝนเรดาร์เชิงพื้นที่ราย 10 นาที (จ.กรุงเทพมหานคร)">ข้อมูลฝนเรดาร์เชิงพื้นที่ราย 10 นาที (จ.กรุงเทพมหานคร)</h2>
+                <p class="text-xs text-slate-500 data-lang" data-en="10-Minute Radar Rainfall Display from Chiang Rai TMD Radar over Bangkok Province Boundary" data-th="แอนิเมชันฝนจากเรดาร์ตรวจอากาศ สถานีเรดาร์ฝนหลวงสัตหีบ และสถานีเรดาร์ฝนหลวงตาคลี กรมฝนหลวงและการบินเกษตร และปรับแก้ร่วมกับสถานีฝนภาคพื้นดินของสำนักการระบายน้ำ กรุงเทพมหานคร แสดงผลข้อมูลภาพทุก ๆ 10 นาที">แอนิเมชันฝนจากเรดาร์ตรวจอากาศ สถานีเรดาร์ฝนหลวงสัตหีบ และสถานีเรดาร์ฝนหลวงตาคลี กรมฝนหลวงและการบินเกษตร และปรับแก้ร่วมกับสถานีฝนภาคพื้นดินของสำนักการระบายน้ำ กรุงเทพมหานคร แสดงผลข้อมูลภาพทุก ๆ 10 นาที</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1.5">
+                    <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                    <span>
+                        <span class="data-lang" data-en="ELAPSED TIME:" data-th="เวลาสะสม:">เวลาสะสม:</span> 
+                        <span id="accum-hours-counter" class="font-mono text-sm ml-0.5">0 ชั่วโมง 0 นาที</span> 
+                        <span class="font-normal opacity-80 text-[11px] ml-1 data-lang" data-en="since 24 SEP 07:00" data-th="นับจาก 24 ก.ย. 07.00 น.">นับจาก 24 ก.ย. 07.00 น.</span>
+                    </span>
+                </div>
+                <div class="bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-mono text-slate-700 shadow-sm" id="live-indicator">
+                    FRAME: Loading...
+                </div>
+            </div>
+        </header>
+
+        <!-- Time Control Bar -->
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-3 space-y-3 shrink-0">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i>
+                        <label for="datetime-selector" class="text-xs font-bold text-slate-600 uppercase whitespace-nowrap data-lang" data-en="Select Timestamp (10-Min):" data-th="เลือกช่วงเวลาภาพฝนเรดาร์ (ราย 10 นาที):">เลือกช่วงเวลาภาพฝนเรดาร์ (ราย 10 นาที):</label>
+                    </div>
+                    <select id="datetime-selector" class="bg-white border border-slate-200 rounded px-2.5 py-1 text-xs font-medium text-slate-700 outline-none shadow-sm w-full sm:w-auto sm:max-w-xs"></select>
+                </div>
+
+                <div class="flex items-center gap-2 text-slate-600 font-sans text-xs">
+                    <i data-lucide="gauge" class="w-4 h-4 text-slate-400"></i>
+                    <span class="data-lang" data-en="Speed:" data-th="ความเร็วสเต็ป:">ความเร็วสเต็ป:</span>
+                    <select id="speed-selector" class="bg-white border border-slate-200 rounded px-2 py-0.5 text-slate-700 outline-none text-xs">
+                        <option value="1000">1.0s / step</option>
+                        <option value="400">0.4s / step</option>
+                        <option value="150" selected>0.15s / step</option>
+                        <option value="80">0.08s / step</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Timeline Slider -->
+            <div class="flex items-center gap-4" style="margin-bottom:44px">
+                <span class="text-xs font-mono font-bold text-slate-400 data-lang" data-en="24 SEP 07:00" data-th="24 ก.ย. 07:00">24 ก.ย. 07:00</span>
+                <div class="relative flex-1 h-6 flex items-center">
+                    <div id="slider-track-highlights" class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2 bg-slate-200 rounded-lg pointer-events-none overflow-hidden"></div>
+                    <div id="day-ticks" class="absolute inset-0 pointer-events-none"></div>
+                    <input type="range" id="timeline-slider" min="0" max="0" value="0" class="absolute inset-0 w-full h-full bg-transparent appearance-none cursor-pointer accent-blue-600 z-10">
+                </div>
+                <span class="text-xs font-mono font-bold text-slate-400 data-lang" data-en="29 SEP 07:00" data-th="29 ก.ย. 07:00">29 ก.ย. 07:00</span>
+            </div>
+
+            <div class="flex items-center justify-center gap-2">
+                <button id="btn-first" class="p-1.5 rounded bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 shadow-sm transition"><i data-lucide="chevrons-left" class="w-4 h-4"></i></button>
+                <button id="btn-prev" class="p-1.5 rounded bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 shadow-sm transition"><i data-lucide="skip-back" class="w-4 h-4"></i></button>
+                <button id="btn-play" class="flex items-center gap-2 px-5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow transition min-w-[130px] justify-center">
+                    <i data-lucide="play" class="w-3.5 h-3.5" id="play-icon"></i><span id="play-text" class="data-lang" data-en="Play Loop" data-th="เล่นวนลูป">เล่นวนลูป</span>
+                </button>
+                <button id="btn-next" class="p-1.5 rounded bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 shadow-sm transition"><i data-lucide="skip-forward" class="w-4 h-4"></i></button>
+                <button id="btn-last" class="p-1.5 rounded bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 shadow-sm transition"><i data-lucide="chevrons-right" class="w-4 h-4"></i></button>
+            </div>
+        </div>
+
+        <!-- Dual Map Grid -->
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 flex-1 md:overflow-hidden md:min-h-0 pb-2">
+            <!-- Map 1: Instantaneous Radar Intensity Rate (mm/hr) -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col relative h-[380px] md:h-full md:min-h-0">
+                <div class="bg-slate-900 text-white px-4 py-2 text-xs font-bold uppercase tracking-wider shrink-0 data-lang" data-en="1. Instantaneous Radar Rainfall Intensity (mm/hr)" data-th="1. ปริมาณฝนเรดาร์ราย 10 นาที (มม./ชม.)">1. ปริมาณฝนเรดาร์ราย 10 นาที (มม./ชม.)</div>
+                <div id="map-hourly" class="w-full flex-1 relative min-h-0"></div>
+                
+                <!-- Colorbar Legend 1 -->
+                <div class="absolute bottom-4 left-4 right-4 md:right-auto z-20 bg-white/95 backdrop-blur-sm border border-slate-200 px-3 py-2 rounded-lg shadow-md flex flex-col gap-1 md:w-72">
+                    <span class="text-[9px] font-bold uppercase text-slate-500 tracking-wider data-lang" data-en="Rainfall Intensity (mm/hr)" data-th="ความเข้มของฝน (มม./ชม.)">ความเข้มของฝน (มม./ชม.)</span>
+                    <div class="w-full h-3 rounded flex border border-slate-300 overflow-hidden">
+                        <div class="flex-1" style="background-color: #5293F8;"></div>
+                        <div class="flex-1" style="background-color: #2C51F2;"></div>
+                        <div class="flex-1" style="background-color: #2544B4;"></div>
+                        <div class="flex-1" style="background-color: #65C859;"></div>
+                        <div class="flex-1" style="background-color: #8FFF38;"></div>
+                        <div class="flex-1" style="background-color: #C8FF1E;"></div>
+                        <div class="flex-1" style="background-color: #FFFF0A;"></div>
+                        <div class="flex-1" style="background-color: #F8DC37;"></div>
+                        <div class="flex-1" style="background-color: #FF9900;"></div>
+                        <div class="flex-1" style="background-color: #FF0000;"></div>
+                        <div class="flex-1" style="background-color: #EC0050;"></div>
+                        <div class="flex-1" style="background-color: #AB0452;"></div>
+                        <div class="flex-1" style="background-color: #FF32FF;"></div>
+                        <div class="flex-1" style="background-color: #D30EFA;"></div>
+                        <div class="flex-1" style="background-color: #BB36F3;"></div>
+                    </div>
+                    <div class="flex justify-between text-[8px] font-mono font-bold text-slate-500 px-0.5">
+                        <span>0.2</span><span>5</span><span>15</span><span>25</span><span>40</span><span>60</span><span>100</span><span>200+</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map 2: Total Accumulated Radar Rainfall (Clear High-Contrast Scale) -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col relative h-[380px] md:h-full md:min-h-0">
+                <div class="bg-slate-900 text-white px-4 py-2 text-xs font-bold uppercase tracking-wider shrink-0 data-lang" data-en="2. Total Accumulated Radar Rainfall (mm)" data-th="2. ปริมาณฝนเรดาร์สะสมทั้งเหตุการณ์ (มม.)">2. ปริมาณฝนเรดาร์สะสมทั้งเหตุการณ์ (มม.)</div>
+                <div id="map-accumulated" class="w-full flex-1 relative min-h-0"></div>
+                
+                <!-- Colorbar Legend 2 (Clear Gradient & Adjusted Range) -->
+                <div class="absolute bottom-4 left-4 right-4 md:right-auto z-20 bg-white/95 backdrop-blur-sm border border-slate-200 px-3 py-2 rounded-lg shadow-md flex flex-col gap-1 md:w-80">
+                    <span class="text-[9px] font-bold uppercase text-slate-500 tracking-wider data-lang" data-en="Total Accumulated (mm)" data-th="ปริมาณฝนสะสมรวมทั้งเหตุการณ์ (มม.)">ปริมาณฝนสะสมรวมทั้งเหตุการณ์ (มม.)</span>
+                    <div class="w-full h-3 rounded flex border border-slate-300 overflow-hidden">
+                        <div class="flex-1" style="background-color: #bbf7d0;" title="10-30 mm"></div>
+                        <div class="flex-1" style="background-color: #4ade80;" title="30-50 mm"></div>
+                        <div class="flex-1" style="background-color: #16a34a;" title="50-100 mm"></div>
+                        <div class="flex-1" style="background-color: #fde047;" title="100-150 mm"></div>
+                        <div class="flex-1" style="background-color: #eab308;" title="150-200 mm"></div>
+                        <div class="flex-1" style="background-color: #f97316;" title="200-250 mm"></div>
+                        <div class="flex-1" style="background-color: #ea580c;" title="250-300 mm"></div>
+                        <div class="flex-1" style="background-color: #ef4444;" title="300-350 mm"></div>
+                        <div class="flex-1" style="background-color: #dc2626;" title="350-400 mm"></div>
+                        <div class="flex-1" style="background-color: #b91c1c;" title="400-450 mm"></div>
+                        <div class="flex-1" style="background-color: #a855f7;" title="450-500 mm"></div>
+                        <div class="flex-1" style="background-color: #7e22ce;" title="500+ mm"></div>
+                    </div>
+                    <div class="flex justify-between text-[8px] font-mono font-bold text-slate-600 px-0.5">
+                        <span>10</span><span>50</span><span>100</span><span>150</span><span>200</span><span>300</span><span>400</span><span class="text-purple-700 font-black">500+</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const INITIAL_CENTER = [13.7563, 100.5018];
+        const mapH = L.map('map-hourly').setView(INITIAL_CENTER, 11);
+        const mapA = L.map('map-accumulated').setView(INITIAL_CENTER, 11);
+
+        // ---- Basemap (no API key needed) ----
+        const BASEMAPS = {
+            primary: {   // Esri Light Gray: looks like CARTO light_all
+                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+                options: { maxZoom: 16, attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors' }
+            },
+            fallback: {  // OpenStreetMap, used only if Esri fails
+                url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                options: { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }
+            }
+        };
+
+        function addBasemap(map) {
+            const primary = L.tileLayer(BASEMAPS.primary.url, BASEMAPS.primary.options).addTo(map);
+            let errors = 0, switched = false;
+            primary.on('tileerror', () => {
+                if (switched || ++errors < 3) return;
+                switched = true;
+                map.removeLayer(primary);
+                L.tileLayer(BASEMAPS.fallback.url, BASEMAPS.fallback.options).addTo(map).bringToBack();
+            });
+        }
+
+        addBasemap(mapH);
+        addBasemap(mapA);
+
+        // ---- Sync the two maps ----
+        let syncing = false;
+        function syncMaps(src, dst) {
+            if (syncing) return;
+            syncing = true;
+            dst.setView(src.getCenter(), src.getZoom(), { animate: false });
+            syncing = false;
+        }
+        mapH.on('move', () => syncMaps(mapH, mapA));
+        mapA.on('move', () => syncMaps(mapA, mapH));
+
+        const resizeObserver = new ResizeObserver(() => {
+            mapH.invalidateSize();
+            mapA.invalidateSize();
+        });
+        resizeObserver.observe(document.getElementById('map-hourly'));
+        resizeObserver.observe(document.getElementById('map-accumulated'));
+
+        // 1. โหลดขอบเขตจังหวัดกรุงเทพมหานคร (เส้นทึบหนา)
+        fetch('data/bangkok_province_boundary.geojson')
+            .then(res => {
+                if (res.ok) return res.json();
+                return fetch('data/bangkok_boundary.geojson').then(r => r.json());
+            })
+            .then(geoJsonData => {
+                const provinceStyle = { color: "#0f172a", weight: 2.2, fillColor: "transparent", fillOpacity: 0 };
+                const layerH = L.geoJSON(geoJsonData, { style: provinceStyle }).addTo(mapH);
+                L.geoJSON(geoJsonData, { style: provinceStyle }).addTo(mapA);
+                mapH.fitBounds(layerH.getBounds(), { padding: [10, 10] });
+            })
+            .catch(err => console.warn("Bangkok province boundary omitted:", err));
+
+        // 2. โหลดขอบเขตอำเภอ (เส้นประบาง)
+        fetch('data/bangkok_district_boundary.geojson')
+            .then(res => { if (res.ok) return res.json(); throw new Error('File not found'); })
+            .then(districtGeoJson => {
+                const districtStyle = { color: "#64748b", weight: 1.0, dashArray: '4, 4', fillColor: "transparent", fillOpacity: 0 };
+                L.geoJSON(districtGeoJson, { style: districtStyle }).addTo(mapH);
+                L.geoJSON(districtGeoJson, { style: districtStyle }).addTo(mapA);
+            })
+            .catch(err => console.warn("District boundary omitted:", err));
+
+        // ความเข้มฝนชั่วขณะราย 10 นาที (mm/hr) - Opacity = 0.7
+        function getHourlyColor(val) {
+            if (val <= 0.2) return 'transparent';
+            if (val <= 2)   return 'rgba(82, 147, 248, 0.7)';  
+            if (val <= 5)   return 'rgba(44, 81, 242, 0.7)';   
+            if (val <= 10)  return 'rgba(37, 68, 180, 0.7)';   
+            if (val <= 15)  return 'rgba(101, 200, 89, 0.7)';  
+            if (val <= 20)  return 'rgba(143, 255, 56, 0.7)';  
+            if (val <= 25)  return 'rgba(200, 255, 30, 0.7)';  
+            if (val <= 30)  return 'rgba(255, 255, 10, 0.7)';  
+            if (val <= 40)  return 'rgba(248, 220, 55, 0.7)';  
+            if (val <= 50)  return 'rgba(255, 153, 0, 0.7)';   
+            if (val <= 60)  return 'rgba(255, 0, 0, 0.7)';     
+            if (val <= 80)  return 'rgba(236, 0, 80, 0.7)';    
+            if (val <= 100) return 'rgba(171, 4, 82, 0.7)';    
+            if (val <= 150) return 'rgba(255, 50, 255, 0.7)';  
+            if (val <= 200) return 'rgba(211, 14, 250, 0.7)';  
+            return 'rgba(187, 54, 243, 0.7)';                 
+        }
+
+        // ฝนสะสมรวมทั้งเหตุการณ์ (0 - 500+ มม.) - Opacity = 0.7 อ่านง่ายชัดเจน
+        function getAccumColor(val) {
+            if (val <= 10)  return 'transparent'; 
+            if (val <= 30)  return 'rgba(187, 247, 208, 0.7)';  /* เขียวอ่อนมาก */
+            if (val <= 50)  return 'rgba(74, 222, 128, 0.7)';   /* เขียวสว่าง */
+            if (val <= 100) return 'rgba(22, 163, 74, 0.7)';    /* เขียวเข้ม */
+            if (val <= 150) return 'rgba(253, 224, 71, 0.7)';   /* เหลืองสด */
+            if (val <= 200) return 'rgba(234, 179, 8, 0.7)';    /* เหลืองเข้ม */
+            if (val <= 250) return 'rgba(249, 115, 22, 0.7)';   /* ส้ม */
+            if (val <= 300) return 'rgba(234, 88, 12, 0.7)';    /* ส้มเข้ม */
+            if (val <= 350) return 'rgba(239, 68, 68, 0.7)';    /* แดง */
+            if (val <= 400) return 'rgba(220, 38, 38, 0.7)';    /* แดงเข้ม */
+            if (val <= 450) return 'rgba(185, 28, 28, 0.7)';    /* แดงเลือดหมู */
+            if (val <= 500) return 'rgba(168, 85, 247, 0.7)';   /* ม่วงสด */
+            return 'rgba(126, 34, 206, 0.7)';                   /* ม่วงเข้ม */
+        }
+
+        let currentLang = 'th';
+
+        function create10MinSequence(startStr, endStr, stepMinutes) {
+            let res = [];
+            let curr = new Date(startStr);
+            const stop = new Date(endStr);
+            let idx = 0;
+            while (curr <= stop) {
+                const y = curr.getFullYear();
+                const m = String(curr.getMonth() + 1).padStart(2, '0');
+                const d = String(curr.getDate()).padStart(2, '0');
+                const h = String(curr.getHours()).padStart(2, '0');
+                const min = String(curr.getMinutes()).padStart(2, '0');
+                
+                const idString = `${y}${m}${d}${h}${min}00`;
+                
+                const labelEN = curr.toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) + " ICT";
+                const labelTH = curr.toLocaleString('th-TH', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) + " น. ICT";
+                
+                res.push({ index: idx++, id: idString, labelEN: labelEN, labelTH: labelTH, rawDate: new Date(curr) });
+                curr.setMinutes(curr.getMinutes() + stepMinutes);
+            }
+            return res;
+        }
+
+        // ช่วงเวลาและระยะห่างของไฟล์ data_json/data_YYYYMMDDHHMMSS.json
+        // ไฟล์แรก = data_20260924070000.json, ไฟล์สุดท้าย = data_20260929070000.json
+        // ถ้าข้อมูลจริงเป็นรายชั่วโมง (ไม่ใช่ราย 10 นาที) ให้เปลี่ยน STEP_MINUTES เป็น 60
+        const START_TIME = "2026-09-24T07:00:00";
+        const END_TIME   = "2026-09-29T07:00:00";
+        const STEP_MINUTES = 10;
+        const frameSequence = create10MinSequence(START_TIME, END_TIME, STEP_MINUTES);
+
+        let currentHourlyLayer = null;
+        let currentAccumLayer = null;
+        let loadedMatrixCache = {}; 
+        let currentDataPayload = null;
+
+        L.PixelPerfectRadarLayer = L.Layer.extend({
+            initialize: function (data, colorFn) {
+                this.data = data;
+                this.colorFn = colorFn;
+            },
+            onAdd: function (map) {
+                this._map = map;
+                this._canvas = L.DomUtil.create('canvas', 'leaflet-layer pixel-radar-layer');
+                this._canvas.style.pointerEvents = 'none'; 
+                map.getPanes().overlayPane.appendChild(this._canvas);
+                map.on('moveend viewreset zoomanim', this._render, this);
+                this._render();
+            },
+            onRemove: function (map) {
+                map.getPanes().overlayPane.removeChild(this._canvas);
+                map.off('moveend viewreset zoomanim', this._render, this);
+            },
+            _render: function () {
+                if (!this._map || !this.data) return;
+
+                const mapSize = this._map.getSize();
+                this._canvas.width = mapSize.x;
+                this._canvas.height = mapSize.y;
+
+                const topLeft = this._map.containerPointToLayerPoint([0, 0]);
+                L.DomUtil.setPosition(this._canvas, topLeft);
+
+                const ctx = this._canvas.getContext('2d');
+                ctx.clearRect(0, 0, mapSize.x, mapSize.y);
+
+                const b = this.data._b;
+                const rows = this.data._rows;
+                const cols = this.data._cols;
+                const isHourly = (this.colorFn === getHourlyColor);
+                const matrix = isHourly ? this.data._hourly : this.data._accum;
+                if (!b || !rows || !cols || !matrix) { reportBadStructure(this.data, isHourly); return; }
+
+                const pNW = this._map.latLngToContainerPoint([b[1][0], b[0][1]]);
+                const pSE = this._map.latLngToContainerPoint([b[0][0], b[1][1]]);
+
+                const extentWidth = pSE.x - pNW.x;
+                const extentHeight = pSE.y - pNW.y;
+
+                const cellW = extentWidth / cols;
+                const cellH = extentHeight / rows;
+
+                let painted = 0;
+                for (let r = 0; r < rows; r++) {
+                    const rowArr = matrix[r];
+                    if (!rowArr) continue;
+                    for (let c = 0; c < cols; c++) {
+                        let val = rowArr[c];
+                        if (val === null || val === undefined || !(val > 0.05)) continue;
+
+                        // แปลงฝนราย 10 นาทีเป็น มม./ชม. สำหรับแผนที่ 1
+                        if (isHourly) {
+                            val = val * 6.0;
+                        }
+
+                        if (val <= 0.2) continue;
+
+                        const xPos = pNW.x + (c * cellW);
+                        const yPos = pNW.y + (r * cellH);
+
+                        ctx.fillStyle = this.colorFn(val);
+                        ctx.fillRect(Math.floor(xPos), Math.floor(yPos), Math.ceil(cellW) + 0.6, Math.ceil(cellH) + 0.6);
+                        painted++;
+                    }
+                }
+                this.painted = painted;
+                reportDiagnostics(this._map, isHourly, painted, pNW, pSE);
+            }
+        });
+
+
+        // ---------- ทำให้โครงสร้างไฟล์ JSON เป็นมาตรฐานเดียว (รองรับรูปแบบ bounds / ชื่อ matrix ต่างกัน) ----------
+        function toNum(v) { return (typeof v === 'number' && isFinite(v)) ? v : null; }
+
+        function normalizeBounds(raw) {
+            if (!raw) return null;
+            let pts = null;
+            if (Array.isArray(raw) && raw.length === 2 && Array.isArray(raw[0]) && Array.isArray(raw[1])) {
+                pts = [raw[0], raw[1]];
+            } else if (Array.isArray(raw) && raw.length === 4 && raw.every(v => typeof v === 'number')) {
+                // ไม่ทราบลำดับ: ใช้ช่วงค่าแยกละติจูด (<30) / ลองจิจูด (>90) ของประเทศไทย
+                const lats = raw.filter(v => v < 30), lngs = raw.filter(v => v >= 90);
+                if (lats.length === 2 && lngs.length === 2) {
+                    return [[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]];
+                }
+                return null;
+            } else if (typeof raw === 'object' && !Array.isArray(raw)) {
+                const g = (...ks) => { for (const k of ks) if (toNum(raw[k]) !== null) return raw[k]; return null; };
+                const S = g('south','min_lat','minLat','lat_min','ymin','y_min','bottom');
+                const N = g('north','max_lat','maxLat','lat_max','ymax','y_max','top');
+                const W = g('west','min_lon','min_lng','minLon','minLng','lon_min','xmin','x_min','left');
+                const E = g('east','max_lon','max_lng','maxLon','maxLng','lon_max','xmax','x_max','right');
+                if ([S,N,W,E].every(v => v !== null)) return [[S, W], [N, E]];
+                return null;
+            }
+            if (!pts) return null;
+            const a = pts[0], c = pts[1];
+            if (![a[0],a[1],c[0],c[1]].every(v => toNum(v) !== null)) return null;
+            // ตรวจว่าจุดเป็น [lat,lng] หรือ [lng,lat]
+            let latIdx = (a[0] < 30 && c[0] < 30) ? 0 : 1;
+            const lngIdx = 1 - latIdx;
+            return [
+                [Math.min(a[latIdx], c[latIdx]), Math.min(a[lngIdx], c[lngIdx])],
+                [Math.max(a[latIdx], c[latIdx]), Math.max(a[lngIdx], c[lngIdx])]
+            ];
+        }
+
+        function pickMatrix(data, names) {
+            for (const n of names) if (data[n] !== undefined && data[n] !== null) return data[n];
+            return null;
+        }
+
+        function reshapeMatrix(m, rows, cols) {
+            if (!m) return null;
+            if (Array.isArray(m) && Array.isArray(m[0])) return m;            // 2D อยู่แล้ว
+            if (Array.isArray(m) && rows && cols && m.length === rows * cols) { // 1D แบน
+                const out = [];
+                for (let r = 0; r < rows; r++) out.push(m.slice(r * cols, (r + 1) * cols));
+                return out;
+            }
+            return null;
+        }
+
+        function normalizeFrame(data) {
+            const hRaw = pickMatrix(data, ['hourly_matrix', 'rain_matrix', 'rain_rate_matrix', 'intensity_matrix', 'hourly', 'rain', 'matrix', 'data']);
+            const aRaw = pickMatrix(data, ['accum_matrix', 'accumulated_matrix', 'accum', 'accumulated', 'acc_matrix', 'total_matrix']);
+            let rows = data.rows || data.nrows || data.height || data.ny;
+            let cols = data.cols || data.ncols || data.width || data.nx;
+            const hM = reshapeMatrix(hRaw, rows, cols);
+            const aM = reshapeMatrix(aRaw, rows, cols);
+            const ref = hM || aM;
+            if (ref) { rows = ref.length; cols = ref[0] ? ref[0].length : cols; }
+            data._b = normalizeBounds(data.bounds || data.extent || data.bbox || data.bound);
+            data._rows = rows; data._cols = cols;
+            data._hourly = hM; data._accum = aM;
+            return data;
+        }
+
+        function matrixStats(m) {
+            if (!m) return 'ไม่พบ';
+            let mn = Infinity, mx = -Infinity, pos = 0, nul = 0, n = 0;
+            for (let r = 0; r < m.length; r++) {
+                const row = m[r]; if (!row) continue;
+                for (let c = 0; c < row.length; c++) {
+                    const v = row[c]; n++;
+                    if (v === null || v === undefined || !isFinite(v)) { nul++; continue; }
+                    if (v < mn) mn = v; if (v > mx) mx = v; if (v > 0) pos++;
+                }
+            }
+            return `${m.length}x${m[0] ? m[0].length : 0} min=${isFinite(mn) ? mn : '-'} max=${isFinite(mx) ? mx : '-'} >0:${pos} null:${nul}`;
+        }
+
+        // ---------- แผงวินิจฉัย: แสดงเมื่อไม่มีพิกเซลถูกวาด หรือเปิดด้วย ?debug=1 ----------
+        const DEBUG_ALWAYS = /[?&]debug=1/.test(location.search);
+        let diagBox = null;
+        function ensureDiagBox() {
+            if (diagBox) return diagBox;
+            diagBox = document.createElement('div');
+            diagBox.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:99999;max-width:560px;background:#0f172a;color:#e2e8f0;font:11px/1.5 ui-monospace,Consolas,monospace;padding:10px 12px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);white-space:pre-wrap;display:none';
+            const close = document.createElement('button');
+            close.textContent = '×'; close.style.cssText = 'position:absolute;top:2px;right:8px;color:#94a3b8;font-size:16px;background:none;border:0;cursor:pointer';
+            close.onclick = () => { diagBox.style.display = 'none'; diagBox.dataset.closed = '1'; };
+            diagBox.appendChild(close);
+            const pre = document.createElement('div'); pre.id = 'diag-text'; diagBox.appendChild(pre);
+            document.body.appendChild(diagBox);
+            return diagBox;
+        }
+        // โครงสร้างไฟล์อ่านไม่ได้ (ไม่พบ bounds / matrix) -> แจ้งบนหน้าจอเสมอ ไม่เงียบ
+        function reportBadStructure(d, isHourly) {
+            const box = ensureDiagBox();
+            box.querySelector('#diag-text').textContent = [
+                '[วินิจฉัย] อ่านโครงสร้างไฟล์ข้อมูลไม่ได้',
+                `keys: ${Object.keys(d).filter(k => k[0] !== '_').join(', ')}`,
+                `bounds(raw): ${JSON.stringify(d.bounds)}  -> ใช้ได้: ${JSON.stringify(d._b)}`,
+                `rows x cols: ${d._rows} x ${d._cols}`,
+                `matrix ที่ต้องใช้สำหรับแผนที่ ${isHourly ? '1' : '2'}: ${isHourly ? (d._hourly ? 'พบ' : 'ไม่พบ') : (d._accum ? 'พบ' : 'ไม่พบ')}`
+            ].join('\n');
+            box.style.display = 'block';
+            console.warn('radar frame structure not recognised', d);
+        }
+        function reportDiagnostics(map, isHourly, painted, pNW, pSE) {
+            if (!currentDataPayload) return;
+            const d = currentDataPayload;
+            if (!DEBUG_ALWAYS) { if (diagBox) diagBox.style.display = 'none'; return; }   // ฝนไม่ตกในกรอบที่มองเห็นเป็นเรื่องปกติ จึงแสดงแผงนี้เฉพาะตอนเปิด ?debug=1
+            const box = ensureDiagBox();
+            const mb = map.getBounds();
+            const lines = [
+                `[วินิจฉัย] เฟรม ${currentFrameIndex + 1}: data_${frameSequence[currentFrameIndex].id}.json`,
+                `keys: ${Object.keys(d).filter(k => k[0] !== '_').join(', ')}`,
+                `bounds(raw): ${JSON.stringify(d.bounds)}`,
+                `bounds(ใช้จริง S,W / N,E): ${JSON.stringify(d._b)}`,
+                `rows x cols: ${d._rows} x ${d._cols}`,
+                `hourly: ${matrixStats(d._hourly)}`,
+                `accum : ${matrixStats(d._accum)}`,
+                `แผนที่ ${isHourly ? '1' : '2'}: พิกเซลที่วาด = ${painted}`,
+                `พื้นที่เรดาร์บนจอ: x ${Math.round(pNW.x)}..${Math.round(pSE.x)}, y ${Math.round(pNW.y)}..${Math.round(pSE.y)}  (จอ ${map.getSize().x}x${map.getSize().y})`,
+                `มุมมองแผนที่: S ${mb.getSouth().toFixed(3)} W ${mb.getWest().toFixed(3)} N ${mb.getNorth().toFixed(3)} E ${mb.getEast().toFixed(3)}`,
+                painted === 0 ? 'หมายเหตุ: ถ้า max ≈ 0 แปลว่าเฟรมนี้ไม่มีฝน — ลองเลื่อนไปช่วง 25–26 ก.ย.' : ''
+            ];
+            box.querySelector('#diag-text').textContent = lines.join('\n');
+            box.style.display = 'block';
+            console.log(lines.join('\n'));
+        }
+
+        const MAX_CACHED_FRAMES = 40;   // จำกัดจำนวนเฟรมในหน่วยความจำ (ไฟล์ข้อมูลจริงมีขนาดใหญ่)
+        let isLoadingFrame = false;
+
+        function cacheFrame(id, data) {
+            loadedMatrixCache[id] = data;
+            const keys = Object.keys(loadedMatrixCache);
+            if (keys.length > MAX_CACHED_FRAMES) delete loadedMatrixCache[keys[0]];
+        }
+
+        // อ่าน JSON แบบทนทาน: ไฟล์จาก Python อาจมีค่า NaN/Infinity ซึ่ง res.json() อ่านไม่ได้
+        function fetchFrameJson(url) {
+            return fetch(url).then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.text();
+            }).then(text => normalizeFrame(JSON.parse(text.replace(/-?\bInfinity\b|\bNaN\b/g, 'null'))));
+        }
+
+        function showFrameError(frameIndex, frame, err) {
+            const frameWord = currentLang === 'en' ? 'FRAME' : 'เฟรม';
+            const msg = currentLang === 'en' ? 'cannot load' : 'โหลดไฟล์ไม่ได้';
+            indicator.innerText = `${frameWord}: ${frameIndex + 1} / ${frameSequence.length} — ${msg} data_${frame.id}.json`;
+            indicator.classList.add('text-red-600');
+            console.warn(`Cannot load data_json/data_${frame.id}.json:`, err);
+            if (currentHourlyLayer) { mapH.removeLayer(currentHourlyLayer); currentHourlyLayer = null; }
+            if (currentAccumLayer) { mapA.removeLayer(currentAccumLayer); currentAccumLayer = null; }
+            currentDataPayload = null;
+        }
+
+        // เวลาสะสมนับจากเฟรมแรก (24 ก.ย. 07:00) แสดงเป็น ชั่วโมง/นาที
+        function formatElapsed(frameIndex) {
+            const totalMin = frameIndex * STEP_MINUTES;
+            const h = Math.floor(totalMin / 60), m = totalMin % 60;
+            return currentLang === 'en' ? `${h} h ${m} min` : `${h} ชั่วโมง ${m} นาที`;
+        }
+
+        function loadAndRenderFrame(frameIndex) {
+            const frame = frameSequence[frameIndex];
+            currentFrameIndex = frameIndex;
+
+            slider.value = frameIndex;
+            selector.value = frameIndex;
+            
+            const frameWord = currentLang === 'en' ? 'FRAME' : 'เฟรม';
+            indicator.innerText = `${frameWord}: ${frameIndex + 1} / ${frameSequence.length}`;
+            indicator.classList.remove('text-red-600');
+            document.getElementById('accum-hours-counter').innerText = formatElapsed(frameIndex);
+            highlightDayLabel(frameIndex);
+
+            if (loadedMatrixCache[frame.id]) {
+                currentDataPayload = loadedMatrixCache[frame.id];
+                applyPerfectCanvasLayers(currentDataPayload);
+                return Promise.resolve();
+            }
+
+            isLoadingFrame = true;
+            return fetchFrameJson(`data_json/data_${frame.id}.json`)
+                .then(data => {
+                    cacheFrame(frame.id, data);
+                    if (currentFrameIndex !== frameIndex) return;   // ผู้ใช้เลื่อนไปเฟรมอื่นแล้ว ไม่ต้องวาดเฟรมเก่าทับ
+                    currentDataPayload = data;
+                    applyPerfectCanvasLayers(data);
+                })
+                .catch(err => { if (currentFrameIndex === frameIndex) showFrameError(frameIndex, frame, err); })
+                .finally(() => { isLoadingFrame = false; });
+        }
+
+        function applyPerfectCanvasLayers(data) {
+            if (currentHourlyLayer) mapH.removeLayer(currentHourlyLayer);
+            if (currentAccumLayer) mapA.removeLayer(currentAccumLayer);
+
+            currentHourlyLayer = new L.PixelPerfectRadarLayer(data, getHourlyColor).addTo(mapH);
+            currentAccumLayer = new L.PixelPerfectRadarLayer(data, getAccumColor).addTo(mapA);
+        }
+
+        const popupH = L.popup({ closeButton: false, autoPan: false });
+        const popupA = L.popup({ closeButton: false, autoPan: false });
+
+        function handleMapGridInterrogation(e, activeMap, isAccum) {
+            if (!currentDataPayload) return;
+            
+            const b = currentDataPayload._b;
+            if (!b) return;
+            const lat = e.latlng.lat; 
+            const lng = e.latlng.lng;
+            const targetPopup = isAccum ? popupA : popupH;
+
+            if (lat >= b[0][0] && lat <= b[1][0] && lng >= b[0][1] && lng <= b[1][1]) {
+                const pctX = (lng - b[0][1]) / (b[1][1] - b[0][1]);
+                const pctY = (b[1][0] - lat) / (b[1][0] - b[0][0]);
+                
+                const c = Math.floor(pctX * currentDataPayload._cols);
+                const r = Math.floor(pctY * currentDataPayload._rows);
+
+                if (r >= 0 && r < currentDataPayload._rows && c >= 0 && c < currentDataPayload._cols) {
+                    const raw10MinVal = ((currentDataPayload._hourly && currentDataPayload._hourly[r] && currentDataPayload._hourly[r][c]) || 0);
+                    const hVal = raw10MinVal * 6.0;
+                    const aVal = ((currentDataPayload._accum && currentDataPayload._accum[r] && currentDataPayload._accum[r][c]) || 0);
+                    
+                    let contentString = "";
+                    if (isAccum) {
+                        const wordAccum = currentLang === 'en' ? 'Accumulated' : 'ปริมาณฝนสะสม';
+                        contentString = `<div class="p-1 font-mono text-xs text-amber-900 font-bold">${wordAccum}: ${aVal.toFixed(1)} mm</div>`;
+                    } else {
+                        const wordHourly = currentLang === 'en' ? 'Intensity' : 'ความเข้มฝน';
+                        contentString = `<div class="p-1 font-mono text-xs text-blue-900 font-bold">${wordHourly}: ${hVal.toFixed(1)} mm/hr</div>`;
+                    }
+                    
+                    targetPopup.setLatLng(e.latlng).setContent(contentString).openOn(activeMap);
+                    return;
+                }
+            }
+            activeMap.closePopup(targetPopup);
+        }
+
+        mapH.on('mousemove', (e) => handleMapGridInterrogation(e, mapH, false));
+        mapA.on('mousemove', (e) => handleMapGridInterrogation(e, mapA, true));
+        mapH.on('mouseout', () => mapH.closePopup(popupH));
+        mapA.on('mouseout', () => mapA.closePopup(popupA));
+
+        let currentFrameIndex = 0;
+        let isPlaying = false;
+        let playbackTimer = null;
+        let playSpeedMs = 150;
+
+        const slider = document.getElementById('timeline-slider');
+        const selector = document.getElementById('datetime-selector');
+        const speedSelector = document.getElementById('speed-selector');
+        const btnPlay = document.getElementById('btn-play');
+        const indicator = document.getElementById('live-indicator');
+
+        function rebuildDropdownOptions() {
+            selector.innerHTML = '';
+            frameSequence.forEach(f => {
+                const opt = document.createElement('option'); 
+                opt.value = f.index; 
+                opt.innerText = currentLang === 'en' ? f.labelEN : f.labelTH;
+                selector.appendChild(opt);
+            });
+            selector.value = currentFrameIndex;
+        }
+
+        frameSequence.forEach(f => {
+            const opt = document.createElement('option'); opt.value = f.index; opt.innerText = f.labelTH;
+            selector.appendChild(opt);
+        });
+        slider.max = frameSequence.length - 1;
+
+        // ขีดเวลาทุก 07:00 น. (เริ่มของแต่ละวัน) บน slider + ป้ายวันที่ คลิกเพื่อกระโดดไปเวลานั้น
+        const THUMB_PX = 16;
+        const dayTicksEl = document.getElementById('day-ticks');
+        const dayLabelEls = [];
+        function buildDayTicks() {
+            dayTicksEl.innerHTML = '';
+            dayLabelEls.length = 0;
+            const last = frameSequence.length - 1;
+            if (last <= 0) return;
+            frameSequence.forEach(f => {
+                if (f.id.slice(8) !== '070000') return;
+                const pct = f.index / last;
+                // ตำแหน่ง thumb จริงของ input[type=range] เลื่อนจาก (ครึ่ง thumb) ถึง (กว้าง - ครึ่ง thumb)
+                const left = `calc(${(pct * 100).toFixed(4)}% + ${(THUMB_PX / 2 - pct * THUMB_PX).toFixed(3)}px)`;
+
+                const tick = document.createElement('div');
+                tick.className = 'day-tick'; tick.style.left = left;
+                dayTicksEl.appendChild(tick);
+
+                const label = document.createElement('div');
+                label.className = 'day-label pointer-events-auto'; label.style.left = left;
+                const dayTxt = f.rawDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+                label.innerHTML = `<span class="d">${dayTxt}</span><span class="t">07:00</span>`;
+                label.title = f.labelTH;
+                label.addEventListener('click', () => { stopAnimation(); loadAndRenderFrame(f.index); });
+                dayTicksEl.appendChild(label);
+                dayLabelEls.push({ el: label, index: f.index });
+            });
+        }
+        function highlightDayLabel(frameIndex) {
+            dayLabelEls.forEach(d => d.el.classList.toggle('active', d.index === frameIndex));
+        }
+        buildDayTicks();
+
+        function startAnimation() {
+            isPlaying = true; btnPlay.classList.replace('bg-blue-600', 'bg-slate-700');
+            
+            const pauseLabel = currentLang === 'en' ? 'Pause Loop' : 'หยุดลูป';
+            document.getElementById('play-text').innerText = pauseLabel;
+            document.getElementById('play-icon').setAttribute('data-lucide', 'pause');
+            lucide.createIcons();
+            playbackTimer = setInterval(() => {
+                if (isLoadingFrame) return;   // รอให้เฟรมปัจจุบันโหลดเสร็จก่อน
+                loadAndRenderFrame((currentFrameIndex + 1) % frameSequence.length);
+            }, playSpeedMs);
+        }
+
+        function stopAnimation() {
+            isPlaying = false; btnPlay.classList.replace('bg-slate-700', 'bg-blue-600');
+            
+            const playLabel = currentLang === 'en' ? 'Play Loop' : 'เล่นวนลูป';
+            document.getElementById('play-text').innerText = playLabel;
+            document.getElementById('play-icon').setAttribute('data-lucide', 'play');
+            lucide.createIcons(); clearInterval(playbackTimer);
+        }
+
+        btnPlay.addEventListener('click', () => isPlaying ? stopAnimation() : startAnimation());
+        document.getElementById('btn-next').addEventListener('click', () => { stopAnimation(); if(currentFrameIndex < frameSequence.length - 1) loadAndRenderFrame(currentFrameIndex + 1); });
+        document.getElementById('btn-prev').addEventListener('click', () => { stopAnimation(); if(currentFrameIndex > 0) loadAndRenderFrame(currentFrameIndex - 1); });
+        document.getElementById('btn-first').addEventListener('click', () => { stopAnimation(); loadAndRenderFrame(0); });
+        document.getElementById('btn-last').addEventListener('click', () => { stopAnimation(); loadAndRenderFrame(frameSequence.length - 1); });
+        slider.addEventListener('input', (e) => { stopAnimation(); loadAndRenderFrame(parseInt(e.target.value)); });
+        selector.addEventListener('change', (e) => { stopAnimation(); loadAndRenderFrame(parseInt(e.target.value)); });
+        speedSelector.addEventListener('change', (e) => { playSpeedMs = parseInt(e.target.value); if(isPlaying) { stopAnimation(); startAnimation(); }});
+
+        const langToggleBtn = document.getElementById('langToggle');
+        const langText = document.getElementById('langText');
+        const translatableElements = document.querySelectorAll('.data-lang');
+
+        langToggleBtn?.addEventListener('click', () => {
+            currentLang = currentLang === 'en' ? 'th' : 'en';
+            langText.innerText = currentLang === 'en' ? 'TH / ภาษาไทย' : 'EN / English';
+            document.documentElement.lang = currentLang;
+
+            translatableElements.forEach(el => {
+                const translation = el.getAttribute(`data-${currentLang}`);
+                if (translation) {
+                    if (el.innerHTML.includes('<i') || el.innerHTML.includes('<span')) {
+                        const icon = el.querySelector('i');
+                        if(icon) {
+                            el.innerHTML = '';
+                            el.appendChild(icon);
+                            el.append(' ' + translation);
+                        } else {
+                            const innerCounter = el.querySelector('#accum-hours-counter');
+                            if(!innerCounter) {
+                                el.innerHTML = translation;
+                            }
+                        }
+                    } else {
+                        el.innerHTML = translation;
+                    }
+                }
+            });
+
+            if(currentLang === 'en') {
+                document.getElementById('btn-play').innerHTML = `<i data-lucide="${isPlaying ? 'pause':'play'}" class="w-3.5 h-3.5" id="play-icon"></i><span id="play-text" class="data-lang" data-en="Play Loop" data-th="เล่นวนลูป">เล่นวนลูป</span>`;
+            } else {
+                document.getElementById('btn-play').innerHTML = `<i data-lucide="${isPlaying ? 'pause':'play'}" class="w-3.5 h-3.5" id="play-icon"></i><span id="play-text" class="data-lang" data-en="Play Loop" data-th="เล่นวนลูป">เล่นวนลูป</span>`;
+            }
+
+            rebuildDropdownOptions();
+            loadAndRenderFrame(currentFrameIndex);
+            lucide.createIcons();
+        });
+
+        lucide.createIcons();
+        loadAndRenderFrame(0);
+    </script>
+</body>
+</html>

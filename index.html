@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Bangkok Flood 2026 - Executive Summary</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      /* Radar4Flood brand reskin: map the dashboard's existing blue-* utility classes */
+      /* onto the official Radar4Flood palette, and use the same Thai-friendly font.   */
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              blue: { 50:'#F3F9FE', 100:'#E6F1FD', 200:'#BFDDFB', 300:'#93C6F9', 400:'#6AB2F6',
+                      500:'#429FF3', 600:'#1E6FD9', 700:'#14479C', 800:'#0A2E63', 900:'#001E45', 950:'#00132E' }
+            },
+            fontFamily: {
+              sans: ['"IBM Plex Sans Thai"', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+            },
+            borderRadius: { lg: '10px', xl: '14px', '2xl': '18px' }
+          }
+        }
+      }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col md:flex-row">
+
+    <aside class="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col justify-between p-4 shrink-0 shadow-sm">
+        <div>
+            <a href="https://radar4flood.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-2 py-4 border-b border-slate-100 mb-4 hover:bg-slate-50 rounded-lg transition-colors" title="ไปยังเว็บไซต์ radar4flood.com">
+                <img src="Radar4flood_Icon_PNG.png" alt="Radar4Flood Logo" class="w-10 h-10 object-contain shrink-0">
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-900 data-lang" data-en="Bangkok Flood 2026" data-th="น้ำท่วมกรุงเทพมหานคร 2569">น้ำท่วมกรุงเทพมหานคร 2569</h1>
+                    <p class="text-xs text-slate-500 font-medium data-lang" data-en="Event Analysis Dashboard" data-th="แดชบอร์ดวิเคราะห์สถานการณ์">แดชบอร์ดวิเคราะห์สถานการณ์</p>
+                </div>
+            </a>
+
+            <nav class="space-y-1">
+                <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-blue-700 font-semibold shadow-sm transition-all">
+                    <i data-lucide="file-text" class="w-5 h-5 text-blue-600"></i>
+                    <span class="data-lang" data-en="1. Summary" data-th="1. สรุปภาพรวมเหตุการณ์">1. สรุปภาพรวมเหตุการณ์</span>
+                </a>
+                <a href="weather_data.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="wind" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="2. Weather Data" data-th="2. ข้อมูลสภาพอากาศ">2. ข้อมูลสภาพอากาศ</span>
+                </a>
+                <a href="rainfall_stations.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="cloud-rain" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="3. Rainfall Station Data" data-th="3. ข้อมูลสถานีวัดน้ำฝน">3. ข้อมูลสถานีวัดน้ำฝน</span>
+                </a>
+                <a href="radar_animation.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="play-circle" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="4. Radar Rainfall Animation" data-th="4. ภาพเคลื่อนไหวฝนเรดาร์">4. ภาพเคลื่อนไหวฝนเรดาร์</span>
+                </a>
+                <a href="spatial_radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="map-pin" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="5. Spatial Radar Rainfall" data-th="5. ปริมาณฝนเรดาร์เชิงพื้นที่">5. ปริมาณฝนเรดาร์เชิงพื้นที่</span>
+                </a>
+                <a href="daily_radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="calendar-days" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="6. Daily Radar Accumulation" data-th="6. ฝนสะสมรายวันจากเรดาร์">6. ฝนสะสมรายวันจากเรดาร์</span>
+                </a>
+            </nav>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 text-center text-xs text-slate-400 font-medium">
+            <p>Radar4Flood &middot; Bangkok Flood 2026</p>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 p-6 md:p-8 space-y-6">
+         
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200 gap-4">
+            <div>
+                <h2 class="text-2xl font-bold tracking-tight text-slate-900 data-lang" data-en="Event Summary" data-th="สรุปสถานการณ์">สรุปสถานการณ์</h2>
+                <p class="text-sm text-slate-500 data-lang" data-en="Summary Report on the September 2026 Flood Situation in Bangkok" data-th="ข้อมูลสรุปสถานการณ์อุทกภัยกรุงเทพมหานคร เดือนกันยายน พ.ศ. 2569">ข้อมูลสรุปสถานการณ์อุทกภัยกรุงเทพมหานคร เดือนกันยายน พ.ศ. 2569</p>
+            </div>
+            <div class="bg-white border border-slate-200 px-4 py-2 rounded-lg text-xs self-start sm:self-center shadow-sm">
+                <span class="text-slate-500 font-medium data-lang" data-en="Event Period:" data-th="ช่วงเวลาเกิดภัย:">ช่วงเวลาเกิดภัย:</span>
+                <span class="text-blue-600 font-bold ml-1">Sep 24 - Sep 27+, 2026</span>
+            </div>
+        </header>
+
+        <div class="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg px-4 py-2.5 flex items-center gap-2">
+            <i data-lucide="info" class="w-4 h-4 shrink-0"></i>
+            <span class="data-lang"
+                  data-en="This dashboard's map, station and radar pages currently show placeholder sample data pending real pipeline exports. The event summary below is sourced from public news reporting (see footer)."
+                  data-th="หน้าแผนที่ สถานีวัด และข้อมูลเรดาร์ในแดชบอร์ดนี้ยังเป็นข้อมูลตัวอย่าง รอการเชื่อมต่อข้อมูลจริงจากระบบ ส่วนสรุปเหตุการณ์ด้านล่างอ้างอิงจากข่าวสารสาธารณะ (ดูแหล่งอ้างอิงด้านล่าง)">หน้าแผนที่ สถานีวัด และข้อมูลเรดาร์ในแดชบอร์ดนี้ยังเป็นข้อมูลตัวอย่าง รอการเชื่อมต่อข้อมูลจริงจากระบบ ส่วนสรุปเหตุการณ์ด้านล่างอ้างอิงจากข่าวสารสาธารณะ (ดูแหล่งอ้างอิงด้านล่าง)</span>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+             
+            <!-- LEFT + CENTER COLUMN: Timeline and Financial Modules -->
+            <section class="xl:col-span-2 space-y-6">
+                
+                <!-- Chronological Event Timeline -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+                        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2 data-lang" data-en="Chronological Event Timeline" data-th="ลำดับเหตุการณ์ตามเวลา">
+                            <i data-lucide="calendar" class="text-blue-600 w-5 h-5"></i> ลำดับเหตุการณ์ตามเวลา</h3>
+                        <div class="flex gap-2">
+                            <span class="text-[11px] font-semibold px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 rounded-full flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span> <span class="data-lang" data-en="~300mm in 48h" data-th="ฝนสะสม ~300 มม. ใน 48 ชม.">ฝนสะสม ~300 มม. ใน 48 ชม.</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="relative border-l-2 border-slate-200 ml-3 space-y-8">
+
+                        <div class="relative pl-6">
+                            <span class="absolute -left-[11px] top-1 bg-slate-400 rounded-full w-5 h-5 border-4 border-white shadow-sm"></span>
+                            <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">Sep 24, 2026 • afternoon</span>
+                            <h4 class="text-sm font-bold text-slate-900 mt-1 data-lang" data-en="Monsoon Rain Begins" data-th="ฝนมรสุมเริ่มตก">ฝนมรสุมเริ่มตก</h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed data-lang"
+                               data-en="A monsoon trough intensifies over central Thailand, bringing sustained heavy rain into Bangkok from Thursday afternoon onward."
+                               data-th="ร่องความกดอากาศต่ำทวีความรุนแรงขึ้นเหนือภาคกลางของไทย ส่งผลให้ฝนตกหนักต่อเนื่องเข้าสู่กรุงเทพมหานครตั้งแต่ช่วงบ่ายวันพฤหัสบดีเป็นต้นไป">ร่องความกดอากาศต่ำทวีความรุนแรงขึ้นเหนือภาคกลางของไทย ส่งผลให้ฝนตกหนักต่อเนื่องเข้าสู่กรุงเทพมหานครตั้งแต่ช่วงบ่ายวันพฤหัสบดีเป็นต้นไป</p>
+                        </div>
+
+                        <div class="relative pl-6">
+                            <span class="absolute -left-[11px] top-1 bg-amber-500 rounded-full w-5 h-5 border-4 border-white shadow-sm"></span>
+                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Sep 25, 2026</span>
+                            <h4 class="text-sm font-bold text-slate-900 mt-1 data-lang" data-en="Rainfall Intensifies, Drainage Overwhelmed" data-th="ฝนตกหนักขึ้น ระบบระบายน้ำเริ่มรับไม่ไหว">ฝนตกหนักขึ้น ระบบระบายน้ำเริ่มรับไม่ไหว</h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed data-lang"
+                               data-en="Rain continues with little let-up through the second day. City pumping stations and canals (khlongs) struggle to keep pace as water levels climb across the metropolitan area."
+                               data-th="ฝนตกต่อเนื่องแทบไม่หยุดเข้าสู่วันที่สอง สถานีสูบน้ำและคลองต่าง ๆ ของเมืองเริ่มรับมือไม่ไหว ระดับน้ำในพื้นที่กรุงเทพมหานครเพิ่มสูงขึ้นต่อเนื่อง">ฝนตกต่อเนื่องแทบไม่หยุดเข้าสู่วันที่สอง สถานีสูบน้ำและคลองต่าง ๆ ของเมืองเริ่มรับมือไม่ไหว ระดับน้ำในพื้นที่กรุงเทพมหานครเพิ่มสูงขึ้นต่อเนื่อง</p>
+                        </div>
+
+                        <div class="relative pl-6">
+                            <span class="absolute -left-[11px] top-1 bg-red-600 rounded-full w-5 h-5 border-4 border-white shadow-sm"></span>
+                            <span class="text-xs font-bold text-white bg-red-600 px-2 py-0.5 rounded-md">Sep 26, 2026 • 10:16</span>
+                            <h4 class="text-sm font-bold text-red-900 mt-1 data-lang" data-en="🚨 Disaster Zone Declared Citywide" data-th="🚨 ประกาศเขตภัยพิบัติทั่วกรุงเทพฯ">🚨 ประกาศเขตภัยพิบัติทั่วกรุงเทพฯ</h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed data-lang"
+                               data-en="Bangkok Governor Chadchart Sittipunt declares all 50 districts of Bangkok a disaster zone at 10:16, with almost 300mm of rain recorded since Thursday afternoon — roughly 48 hours of continuous heavy rain. Eastern districts, including Khlong Chan and Bueng Kum, are hit hardest."
+                               data-th="ผู้ว่าราชการกรุงเทพมหานคร นายชัชชาติ สิทธิพันธุ์ ประกาศให้ทั้ง 50 เขตของกรุงเทพมหานครเป็นเขตภัยพิบัติ เมื่อเวลา 10:16 น. โดยมีฝนตกสะสมเกือบ 300 มม. ตั้งแต่บ่ายวันพฤหัสบดี หรือราว 48 ชั่วโมงของฝนตกหนักต่อเนื่อง พื้นที่ฝั่งตะวันออกของเมือง รวมถึงเขตคลองจั่นและบึงกุ่ม ได้รับผลกระทบรุนแรงที่สุด">ผู้ว่าราชการกรุงเทพมหานคร นายชัชชาติ สิทธิพันธุ์ ประกาศให้ทั้ง 50 เขตของกรุงเทพมหานครเป็นเขตภัยพิบัติ เมื่อเวลา 10:16 น. โดยมีฝนตกสะสมเกือบ 300 มม. ตั้งแต่บ่ายวันพฤหัสบดี หรือราว 48 ชั่วโมงของฝนตกหนักต่อเนื่อง พื้นที่ฝั่งตะวันออกของเมือง รวมถึงเขตคลองจั่นและบึงกุ่ม ได้รับผลกระทบรุนแรงที่สุด</p>
+                        </div>
+
+                        <div class="relative pl-6">
+                            <span class="absolute -left-[11px] top-1 bg-red-700 rounded-full w-5 h-5 border-4 border-white shadow-sm"></span>
+                            <span class="text-xs font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-md">Sep 26, 2026</span>
+                            <h4 class="text-sm font-bold text-slate-900 mt-1 data-lang" data-en="Casualties Reported" data-th="รายงานผู้เสียชีวิต">รายงานผู้เสียชีวิต</h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed data-lang"
+                               data-en="Three deaths are confirmed: a 58-year-old woman electrocuted in a Khlong Chan housing complex car park, and two Bueng Kum residents who drowned — a 73-year-old man while moving belongings, and a 78-year-old bedridden man unable to evacuate."
+                               data-th="ยืนยันผู้เสียชีวิต 3 ราย ได้แก่ หญิงอายุ 58 ปี ถูกไฟดูดเสียชีวิตที่ลานจอดรถหมู่บ้านในเขตคลองจั่น และผู้เสียชีวิตจากการจมน้ำอีก 2 รายในเขตบึงกุ่ม คือชายอายุ 73 ปี ขณะเคลื่อนย้ายทรัพย์สิน และชายอายุ 78 ปี ผู้ป่วยติดเตียงที่ไม่สามารถอพยพได้ทัน">ยืนยันผู้เสียชีวิต 3 ราย ได้แก่ หญิงอายุ 58 ปี ถูกไฟดูดเสียชีวิตที่ลานจอดรถหมู่บ้านในเขตคลองจั่น และผู้เสียชีวิตจากการจมน้ำอีก 2 รายในเขตบึงกุ่ม คือชายอายุ 73 ปี ขณะเคลื่อนย้ายทรัพย์สิน และชายอายุ 78 ปี ผู้ป่วยติดเตียงที่ไม่สามารถอพยพได้ทัน</p>
+                        </div>
+
+                        <div class="relative pl-6">
+                            <span class="absolute -left-[11px] top-1 bg-blue-500 rounded-full w-5 h-5 border-4 border-white shadow-sm"></span>
+                            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">Sep 26, 2026</span>
+                            <h4 class="text-sm font-bold text-slate-900 mt-1 data-lang" data-en="Roads Cut, City Mobilizes Response" data-th="ถนนถูกตัดขาด เมืองเร่งตอบโต้สถานการณ์">ถนนถูกตัดขาด เมืองเร่งตอบโต้สถานการณ์</h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed data-lang"
+                               data-en="Floodwater blocks traffic at 37 locations across the city. The Bangkok Metropolitan Administration opens free MRT park-and-ride parking through October 2 to get vehicles off flooded streets, and mobilizes pumps to accelerate drainage."
+                               data-th="น้ำท่วมตัดขาดการจราจรใน 37 จุดทั่วเมือง กรุงเทพมหานครเปิดให้จอดรถฟรีที่อาคารจอดแล้วจรของรถไฟฟ้า MRT จนถึงวันที่ 2 ตุลาคม เพื่อนำรถออกจากพื้นที่น้ำท่วม พร้อมระดมเครื่องสูบน้ำเร่งระบายน้ำ">น้ำท่วมตัดขาดการจราจรใน 37 จุดทั่วเมือง กรุงเทพมหานครเปิดให้จอดรถฟรีที่อาคารจอดแล้วจรของรถไฟฟ้า MRT จนถึงวันที่ 2 ตุลาคม เพื่อนำรถออกจากพื้นที่น้ำท่วม พร้อมระดมเครื่องสูบน้ำเร่งระบายน้ำ</p>
+                        </div>
+
+                        <div class="relative pl-6">
+                            <span class="absolute -left-[11px] top-1 bg-emerald-500 rounded-full w-5 h-5 border-4 border-white shadow-sm"></span>
+                            <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Sep 27, 2026 onward</span>
+                            <h4 class="text-sm font-bold text-emerald-900 mt-1 data-lang" data-en="Rain Eases, Drainage Underway" data-th="ฝนเริ่มซา การระบายน้ำดำเนินต่อไป">ฝนเริ่มซา การระบายน้ำดำเนินต่อไป</h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed data-lang"
+                               data-en="Rainfall begins to subside; officials estimate 2-3 days to fully drain standing water once rain stops. Residents in low-lying eastern districts continue clean-up in the following days."
+                               data-th="ปริมาณฝนเริ่มลดลง หน่วยงานประเมินว่าต้องใช้เวลาอีก 2-3 วันในการระบายน้ำที่ท่วมขังให้แล้วเสร็จหลังฝนหยุดตก ประชาชนในพื้นที่ลุ่มต่ำฝั่งตะวันออกยังคงเร่งทำความสะอาดบ้านเรือนในวันต่อ ๆ มา">ปริมาณฝนเริ่มลดลง หน่วยงานประเมินว่าต้องใช้เวลาอีก 2-3 วันในการระบายน้ำที่ท่วมขังให้แล้วเสร็จหลังฝนหยุดตก ประชาชนในพื้นที่ลุ่มต่ำฝั่งตะวันออกยังคงเร่งทำความสะอาดบ้านเรือนในวันต่อ ๆ มา</p>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Government & Emergency Response (qualitative - see footer sources for figures) -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3 data-lang" data-en="Government & Emergency Response" data-th="การตอบสนองของหน่วยงานรัฐและมาตรการฉุกเฉิน">
+                        <i data-lucide="shield-alert" class="text-indigo-600 w-5 h-5"></i> การตอบสนองของหน่วยงานรัฐและมาตรการฉุกเฉิน</h3>
+                    <ul class="space-y-3 text-sm text-slate-700">
+                        <li class="flex items-start gap-3">
+                            <i data-lucide="siren" class="w-4 h-4 text-red-500 mt-0.5 shrink-0"></i>
+                            <span class="data-lang" data-en="All 50 districts of Bangkok declared a disaster zone on Sep 26, 2026 at 10:16, authorizing local agencies to mobilize relief directly." data-th="ประกาศให้ทั้ง 50 เขตของกรุงเทพมหานครเป็นเขตภัยพิบัติ เมื่อวันที่ 26 ก.ย. 2569 เวลา 10:16 น. เปิดทางให้หน่วยงานในพื้นที่ระดมความช่วยเหลือได้โดยตรง">ประกาศให้ทั้ง 50 เขตของกรุงเทพมหานครเป็นเขตภัยพิบัติ เมื่อวันที่ 26 ก.ย. 2569 เวลา 10:16 น. เปิดทางให้หน่วยงานในพื้นที่ระดมความช่วยเหลือได้โดยตรง</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i data-lucide="car" class="w-4 h-4 text-blue-500 mt-0.5 shrink-0"></i>
+                            <span class="data-lang" data-en="Free parking offered at MRT park-and-ride facilities through October 2, so residents could move vehicles out of flood-prone streets." data-th="เปิดให้จอดรถฟรีที่อาคารจอดแล้วจรของรถไฟฟ้า MRT จนถึงวันที่ 2 ตุลาคม เพื่อให้ประชาชนนำรถออกจากถนนที่มีความเสี่ยงน้ำท่วม">เปิดให้จอดรถฟรีที่อาคารจอดแล้วจรของรถไฟฟ้า MRT จนถึงวันที่ 2 ตุลาคม เพื่อให้ประชาชนนำรถออกจากถนนที่มีความเสี่ยงน้ำท่วม</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i data-lucide="waves" class="w-4 h-4 text-cyan-600 mt-0.5 shrink-0"></i>
+                            <span class="data-lang" data-en="Pumping stations and mobile pumps mobilized citywide to accelerate drainage; officials estimated 2-3 days to clear standing water once rain stopped." data-th="ระดมสถานีสูบน้ำและเครื่องสูบน้ำเคลื่อนที่ทั่วเมืองเพื่อเร่งการระบายน้ำ โดยหน่วยงานประเมินว่าต้องใช้เวลาอีก 2-3 วันหลังฝนหยุดตกจึงจะระบายน้ำที่ท่วมขังได้หมด">ระดมสถานีสูบน้ำและเครื่องสูบน้ำเคลื่อนที่ทั่วเมืองเพื่อเร่งการระบายน้ำ โดยหน่วยงานประเมินว่าต้องใช้เวลาอีก 2-3 วันหลังฝนหยุดตกจึงจะระบายน้ำที่ท่วมขังได้หมด</span>
+                        </li>
+                    </ul>
+                    <div class="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg px-3 py-2 flex items-start gap-2 data-lang"
+                         data-en="Official damage and compensation figures were not yet published as of this writing — this card will be updated once the Bangkok Metropolitan Administration and Bank of Thailand release official estimates."
+                         data-th="ยังไม่มีการเปิดเผยตัวเลขความเสียหายและเงินเยียวยาอย่างเป็นทางการ ณ เวลาที่จัดทำหน้านี้ ข้อมูลจะได้รับการปรับปรุงเมื่อกรุงเทพมหานครและธนาคารแห่งประเทศไทยเผยแพร่ตัวเลขอย่างเป็นทางการ">ยังไม่มีการเปิดเผยตัวเลขความเสียหายและเงินเยียวยาอย่างเป็นทางการ ณ เวลาที่จัดทำหน้านี้ ข้อมูลจะได้รับการปรับปรุงเมื่อกรุงเทพมหานครและธนาคารแห่งประเทศไทยเผยแพร่ตัวเลขอย่างเป็นทางการ</div>
+                </div>
+
+            </section>
+
+            <!-- RIGHT COLUMN: Physical Impact Indicators & Metadata -->
+            <section class="space-y-6">
+
+                <!-- Impact Assessment Indicators - real, sourced figures only -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase data-lang" data-en="Impact Assessment Indicators" data-th="ตัวชี้วัดความเสียหายเชิงกายภาพ">ตัวชี้วัดความเสียหายเชิงกายภาพ</h3>
+
+                    <!-- Rainfall -->
+                    <div class="flex items-center gap-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <div class="p-3 bg-blue-100 text-blue-700 rounded-lg">
+                            <i data-lucide="cloud-rain" class="w-6 h-6"></i>
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-xs font-medium text-slate-500 data-lang" data-en="Rainfall Recorded (48h, Sep 24-26)" data-th="ฝนสะสม (48 ชม. 24-26 ก.ย.)">ฝนสะสม (48 ชม. 24-26 ก.ย.)</span>
+                            <span class="text-xl font-bold text-slate-900">~300 <span class="text-xs font-semibold text-slate-500">mm</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Districts -->
+                    <div class="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div class="p-3 bg-slate-200 text-slate-700 rounded-lg">
+                            <i data-lucide="map" class="w-6 h-6"></i>
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-xs font-medium text-slate-500 data-lang" data-en="Districts Declared Disaster Zones" data-th="เขตที่ประกาศเป็นเขตภัยพิบัติ">เขตที่ประกาศเป็นเขตภัยพิบัติ</span>
+                            <span class="text-xl font-bold text-slate-900">50 <span class="text-xs font-semibold text-slate-500 data-lang" data-en="of 50 districts" data-th="จาก 50 เขต">จาก 50 เขต</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Casualties -->
+                    <div class="flex items-center gap-4 p-3 bg-red-50 rounded-lg border border-red-100">
+                        <div class="p-3 bg-red-100 text-red-700 rounded-lg">
+                            <i data-lucide="heart-off" class="w-6 h-6"></i>
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-xs font-medium text-red-600 data-lang" data-en="Confirmed Fatalities" data-th="ผู้เสียชีวิตที่ยืนยันแล้ว">ผู้เสียชีวิตที่ยืนยันแล้ว</span>
+                            <span class="text-xl font-bold text-red-700">3 <span class="text-xs font-semibold text-red-500 data-lang" data-en="(Khlong Chan & Bueng Kum)" data-th="(เขตคลองจั่นและบึงกุ่ม)">(เขตคลองจั่นและบึงกุ่ม)</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Roads blocked -->
+                    <div class="flex items-center gap-4 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                        <div class="p-3 bg-amber-100 text-amber-700 rounded-lg">
+                            <i data-lucide="road" class="w-6 h-6"></i>
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-xs font-medium text-slate-500 data-lang" data-en="Roads Cut by Floodwater" data-th="ถนนที่ถูกน้ำท่วมตัดขาด">ถนนที่ถูกน้ำท่วมตัดขาด</span>
+                            <span class="text-xl font-bold text-slate-900">37 <span class="text-xs font-semibold text-slate-500 data-lang" data-en="locations" data-th="จุด">จุด</span></span>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs text-slate-500 data-lang"
+                         data-en="Households, population and economic-loss figures are not yet officially published — placeholders will be replaced once available."
+                         data-th="ตัวเลขครัวเรือน ประชากร และความเสียหายทางเศรษฐกิจยังไม่มีการเผยแพร่อย่างเป็นทางการ จะมีการอัปเดตเมื่อมีข้อมูล">ตัวเลขครัวเรือน ประชากร และความเสียหายทางเศรษฐกิจยังไม่มีการเผยแพร่อย่างเป็นทางการ จะมีการอัปเดตเมื่อมีข้อมูล</div>
+                </div>
+
+                <!-- กล่อง MADE BY พร้อมเพิ่มรูปภาพโลโก้จริงจากวิกิมีเดีย -->
+                <div class="bg-white p-5 border border-slate-200 rounded-xl space-y-4 shadow-sm">
+                    <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase data-lang" data-en="Developed By" data-th="พัฒนาโดย">พัฒนาโดย</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-xs font-bold text-blue-600 tracking-wide uppercase block data-lang" data-en="Platform Initiative" data-th="โครงการแพลตฟอร์ม">โครงการแพลตฟอร์ม</span>
+                            <h4 class="text-base font-bold text-slate-900">Radar4Flood Platform</h4>
+                        </div>
+                        <div class="flex items-start gap-2 pt-1">
+                            <i data-lucide="user" class="w-4 h-4 text-slate-400 shrink-0 mt-0.5"></i>
+                            <div class="text-xs text-slate-700 font-medium">
+                                <span class="block font-bold text-slate-900 data-lang" data-en="Assoc.Prof. Dr. Punpim Puttaraksa Mapiam" data-th="รศ.ดร.พรรณพิมพ์ พุทธรักษา มะเปี่ยม">รศ.ดร.พรรณพิมพ์ พุทธรักษา มะเปี่ยม</span>
+                                <span class="data-lang" data-en="Principal Investigator / Project Leader" data-th="หัวหน้าโครงการ">หัวหน้าโครงการ</span>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2 border-b border-slate-100 pb-3">
+                            <i data-lucide="landmark" class="w-4 h-4 text-slate-400 shrink-0 mt-0.5"></i>
+                            <p class="text-xs text-slate-600 data-lang" data-en="Department of Water resources enginneering, Faculty of Engineering, Kasetsart University" data-th="ภาควิชาวิศวกรรมทรัพยากรน้ำ คณะวิศวกรรมศาสตร์ มหาวิทยาลัยเกษตรศาสตร์">ภาควิชาวิศวกรรมทรัพยากรน้ำ คณะวิศวกรรมศาสตร์ มหาวิทยาลัยเกษตรศาสตร์</p>
+                        </div>
+                        
+                        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-[11px] text-slate-500 leading-relaxed">
+                            <span class="font-bold text-slate-700 block mb-0.5 data-lang" data-en="Research Grant Sponsor:" data-th="ผู้สนับสนุนทุนวิจัย:">ผู้สนับสนุนทุนวิจัย:</span>
+                            <span class="data-lang" data-en="Funded by Agricultural Research and Development Agency (Public Organization) (ARDA)" data-th="ทุนสนับสนุนจาก สำนักงานพัฒนาการวิจัยการเกษตร (องค์การมหาชน) (สวก.)">ทุนสนับสนุนจาก สำนักงานพัฒนาการวิจัยการเกษตร (องค์การมหาชน) (สวก.)</span>
+                        </div>
+                    </div>
+
+                    <!-- ส่วนแสดงผลโลโก้จริงจาก URL ของผู้ใช้งาน -->
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-center gap-6 bg-slate-50/50 p-2 rounded-lg">
+                        <div class="w-20 h-20 flex items-center justify-center p-1" title="Kasetsart University">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/6/67/KU_SubLogo.png" alt="KU Logo" class="max-w-full max-h-full object-contain filter drop-shadow-sm">
+                        </div>
+                        <div class="w-20 h-20 flex items-center justify-center p-1" title="ARDA Thailand">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Emblem_of_The_Agricultural_Research_Development_Agency.svg/1280px-Emblem_of_The_Agricultural_Research_Development_Agency.svg.png" alt="ARDA Logo" class="max-w-full max-h-full object-contain filter drop-shadow-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sources for the event summary content on this page -->
+                <div class="bg-slate-100 p-4 border border-slate-200 rounded-xl space-y-2 text-center shadow-inner">
+                    <p class="text-xs text-slate-600 font-semibold tracking-wide data-lang"
+                       data-en="📰 Event summary compiled from public news reporting: Al Jazeera, CNN, SBS News, Taipei Times and Wikipedia (2026 Bangkok floods)."
+                       data-th="📰 ข้อมูลสรุปเหตุการณ์รวบรวมจากข่าวสารสาธารณะ: Al Jazeera, CNN, SBS News, Taipei Times และวิกิพีเดีย (2026 Bangkok floods)">📰 ข้อมูลสรุปเหตุการณ์รวบรวมจากข่าวสารสาธารณะ: Al Jazeera, CNN, SBS News, Taipei Times และวิกิพีเดีย (2026 Bangkok floods)</p>
+                    <p class="text-[11px] text-slate-400 font-mono data-lang"
+                       data-en="Station, radar and weather pages on this dashboard use placeholder data pending real pipeline exports."
+                       data-th="หน้าสถานีวัด เรดาร์ และสภาพอากาศในแดชบอร์ดนี้ยังใช้ข้อมูลตัวอย่าง รอการเชื่อมต่อข้อมูลจริงจากระบบ">หน้าสถานีวัด เรดาร์ และสภาพอากาศในแดชบอร์ดนี้ยังใช้ข้อมูลตัวอย่าง รอการเชื่อมต่อข้อมูลจริงจากระบบ</p>
+                </div>
+
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Language toggle mechanism
+        let currentLang = 'th';
+        const langToggleBtn = document.getElementById('langToggle');
+        const langText = document.getElementById('langText');
+        const translatableElements = document.querySelectorAll('.data-lang');
+
+        langToggleBtn?.addEventListener('click', () => {
+            currentLang = currentLang === 'en' ? 'th' : 'en';
+            
+            // Update Toggle Button Text
+            langText.innerText = currentLang === 'en' ? 'TH / ภาษาไทย' : 'EN / English';
+            
+            // Toggle HTML lang attribute
+            document.documentElement.lang = currentLang;
+
+            // Swap out content text
+            translatableElements.forEach(el => {
+                const translation = el.getAttribute(`data-${currentLang}`);
+                if (translation) {
+                    if (el.innerHTML.includes('<i') || el.innerHTML.includes('<span')) {
+                        const icon = el.querySelector('i');
+                        const dot = el.querySelector('.bg-amber-500, .bg-red-500');
+                        
+                        if(icon) {
+                            el.innerHTML = '';
+                            el.appendChild(icon);
+                            el.append(' ' + translation);
+                        } else if(dot) {
+                            const innerSpan = document.createElement('span');
+                            innerSpan.className = dot.className;
+                            el.innerHTML = '';
+                            el.appendChild(innerSpan);
+                            el.append(' ' + translation);
+                        } else {
+                            el.innerHTML = translation;
+                        }
+                    } else {
+                        el.innerHTML = translation;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

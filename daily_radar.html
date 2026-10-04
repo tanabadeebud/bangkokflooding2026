@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Bangkok Flood 2026 - Daily Accumulated Radar Rainfall</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      /* Radar4Flood brand reskin: map the dashboard's existing blue-* utility classes */
+      /* onto the official Radar4Flood palette, and use the same Thai-friendly font.   */
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              blue: { 50:'#F3F9FE', 100:'#E6F1FD', 200:'#BFDDFB', 300:'#93C6F9', 400:'#6AB2F6',
+                      500:'#429FF3', 600:'#1E6FD9', 700:'#14479C', 800:'#0A2E63', 900:'#001E45', 950:'#00132E' }
+            },
+            fontFamily: {
+              sans: ['"IBM Plex Sans Thai"', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+            },
+            borderRadius: { lg: '10px', xl: '14px', '2xl': '18px' }
+          }
+        }
+      }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        .radar-map-grid { z-index: 1; }
+        /* 3 คอลัมน์ x 2 แถว: แผนที่ 6 ช่อง (รายวัน 5 วัน + สะสมทั้งเหตุการณ์) เต็มความสูงหน้าจอ */
+        @media (min-width: 1024px) {
+            .daily-grid { grid-template-rows: repeat(2, minmax(300px, 1fr)); }
+        }
+        .panel-status { position: absolute; inset: 0; z-index: 500; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; pointer-events: none; font-size: 12px; font-weight: 600; color: #475569; background: rgba(255,255,255,.55); }
+        .panel-status.error { color: #dc2626; background: rgba(255,255,255,.8); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col md:flex-row">
+
+    <aside class="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col justify-between p-4 shrink-0 shadow-sm z-30 md:sticky md:top-0 md:h-screen">
+        <div>
+            <a href="https://radar4flood.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-2 py-4 border-b border-slate-100 mb-4 hover:bg-slate-50 rounded-lg transition-colors" title="ไปยังเว็บไซต์ radar4flood.com">
+                <img src="Radar4flood_Icon_PNG.png" alt="Radar4Flood Logo" class="w-10 h-10 object-contain shrink-0">
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-900 data-lang" data-en="Bangkok Flood 2026" data-th="เหตุการณ์น้ำท่วมกรุงเทพมหานคร กันยายน 2569">เหตุการณ์น้ำท่วมกรุงเทพมหานคร กันยายน 2569</h1>
+                    <p class="text-xs text-slate-500 font-medium data-lang" data-en="Event Analysis Dashboard" data-th="แดชบอร์ดวิเคราะห์สถานการณ์">แดชบอร์ดวิเคราะห์สถานการณ์</p>
+                </div>
+            </a>
+
+            <nav class="space-y-1">
+                <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="file-text" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="1. Summary" data-th="1. สรุปภาพรวมเหตุการณ์">1. สรุปภาพรวมเหตุการณ์</span>
+                </a>
+                <a href="weather_data.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="wind" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="2. Weather Data" data-th="2. ข้อมูลสภาพอากาศ">2. ข้อมูลสภาพอากาศ</span>
+                </a>
+                <a href="rainfall_stations.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="cloud-rain" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="3. Rainfall Station Data" data-th="3. ข้อมูลสถานีวัดน้ำฝน">3. ข้อมูลสถานีวัดน้ำฝน</span>
+                </a>
+                <a href="radar_animation.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="play-circle" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="4. Radar Rainfall Animation" data-th="4. ภาพเคลื่อนไหวฝนเรดาร์">4. ภาพเคลื่อนไหวฝนเรดาร์</span>
+                </a>
+                <a href="spatial_radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="map-pin" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="5. Spatial Radar Rainfall" data-th="5. ปริมาณฝนเรดาร์เชิงพื้นที่">5. ปริมาณฝนเรดาร์เชิงพื้นที่</span>
+                </a>
+                <a href="daily_radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-blue-700 font-semibold shadow-sm transition-all">
+                    <i data-lucide="calendar-days" class="w-5 h-5 text-blue-600"></i>
+                    <span class="data-lang" data-en="6. Daily Radar Accumulation" data-th="6. ฝนสะสมรายวันจากเรดาร์">6. ฝนสะสมรายวันจากเรดาร์</span>
+                </a>
+            </nav>
+        </div>
+        <div class="pt-4 border-t border-slate-100 text-center text-xs text-slate-400 font-medium hidden md:block">
+            <p>Radar4Flood &middot; Bangkok Flood 2026</p>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 p-4 md:p-6 gap-4">
+        <header class="flex flex-col xl:flex-row xl:items-center xl:justify-between pb-3 border-b border-slate-200 gap-4 shrink-0">
+            <div class="min-w-0">
+                <h2 class="text-xl font-bold tracking-tight text-slate-900">แผนที่แสดงข้อมูลฝนเรดาร์สะสมรายวัน และฝนเรดาร์สะสมทั้งเหตุการณ์</h2>
+                <p class="text-xs text-slate-500 mt-0.5">ปริมาณฝนเรดาร์สะสมรายวัน 25 – 29 กันยายน พ.ศ. 2569 และปริมาณฝนเรดาร์สะสมทั้งเหตุการณ์ (24 ก.ย. 07:00 – 29 ก.ย. 07:00 น.)</p>
+            </div>
+
+            <div class="flex flex-col gap-1.5 w-full xl:w-80 shrink-0">
+                <div class="bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm flex flex-col gap-0.5 w-full">
+                    <span class="text-[10px] font-bold text-slate-500 tracking-wider">ฝนสะสมรายวัน (มม.)</span>
+                    <div class="w-full h-3 rounded flex border border-slate-300 overflow-hidden">
+                        <div class="flex-1" style="background-color: #00008F;"></div>
+                        <div class="flex-1" style="background-color: #0000F5;"></div>
+                        <div class="flex-1" style="background-color: #0092FF;"></div>
+                        <div class="flex-1" style="background-color: #00C2FF;"></div>
+                        <div class="flex-1" style="background-color: #29FFD6;"></div>
+                        <div class="flex-1" style="background-color: #5CFFAB;"></div>
+                        <div class="flex-1" style="background-color: #8FFF7F;"></div>
+                        <div class="flex-1" style="background-color: #21FF33;"></div>
+                        <div class="flex-1" style="background-color: #FFD600;"></div>
+                        <div class="flex-1" style="background-color: #FF7000;"></div>
+                        <div class="flex-1" style="background-color: #FF3D00;"></div>
+                        <div class="flex-1" style="background-color: #FF0000;"></div>
+                    </div>
+                    <div class="flex justify-between text-[9px] font-mono font-bold text-slate-600 px-0.5">
+                        <span>5</span><span>20</span><span>40</span><span>60</span><span>90</span><span>120</span><span>150+</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div id="grid-container" class="daily-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 flex-1 min-h-0"></div>
+    </main>
+
+    <script>
+        // ======================================================================
+        //  ฝนสะสมรายวัน (25 - 29 ก.ย.) และสะสมทั้งเหตุการณ์ จากไฟล์ data_json/data_YYYYMMDDHHMMSS.json
+        //
+        //  ข้อมูลที่ใช้: เฉพาะ accum_matrix (ฝนสะสมต่อเนื่องนับจาก 24 ก.ย. 07:00) ของไฟล์เวลา 07:00 น. 6 ไฟล์
+        //    ฝนรายวัน (วัน D)   = accum_matrix(D 07:00) - accum_matrix(D-1 07:00)
+        //    ฝนทั้งเหตุการณ์    = accum_matrix(29 ก.ย. 07:00)
+        //  ไม่ต้องรวม hourly_matrix ทีละไฟล์อีกต่อไป (เร็วกว่า: โหลด 6 ไฟล์แทนหลายร้อยไฟล์)
+        // ======================================================================
+        const EVENT_YEAR = 2026;
+        const EVENT_MONTH = 9;
+        const EVENT_FIRST_DAY = 24;          // ฐานเวลา: 24 ก.ย. 07:00
+        const EVENT_LAST_DAY = 29;           // สิ้นสุด: 29 ก.ย. 07:00
+        const BOUNDARY_HOUR = 7;             // รอบสะสม 07:00 น.
+        const MAX_OFFSET_STEPS = 6;          // ถ้าไม่มีไฟล์ 07:00 พอดี ลองไฟล์ใกล้เคียง +/- ได้ถึง 60 นาที (ขั้นละ 10 นาที)
+        const RAW_STEP_MINUTES = 10;
+
+        const THAI_MONTH = 'ก.ย.';
+        const thaiYear = EVENT_YEAR + 543;
+        const dayLabel = d => `${d} ${THAI_MONTH} ${thaiYear}`;
+        const shortLabel = d => `${d} ${THAI_MONTH} 07:00`;
+
+        const panels = [];
+        for (let d = EVENT_FIRST_DAY + 1; d <= EVENT_LAST_DAY; d++) {
+            panels.push({
+                key: 'day' + d, kind: 'daily', endDay: d, startDay: d - 1,
+                title: dayLabel(d), colorFn: 'daily', minVal: 5,
+                period: `สะสม ${shortLabel(d - 1)} – ${shortLabel(d)} น.`
+            });
+        }
+        panels.push({
+            key: 'event', kind: 'event', endDay: EVENT_LAST_DAY, startDay: EVENT_FIRST_DAY,
+            title: 'สะสมทั้งเหตุการณ์', colorFn: 'event', minVal: 10,
+            period: `สะสม ${shortLabel(EVENT_FIRST_DAY)} – ${shortLabel(EVENT_LAST_DAY)} น.`
+        });
+
+        // ---------- แถบสีฝนสะสมรายวัน (แถบสีเดิมของหน้านี้) ----------
+        function getDailyAccumColor(val) {
+            if (val <= 5)   return 'transparent';
+            if (val <= 15)  return 'rgba(0, 0, 143, 0.6)';
+            if (val <= 30)  return 'rgba(0, 0, 245, 0.6)';
+            if (val <= 50)  return 'rgba(0, 92, 255, 0.6)';
+            if (val <= 70)  return 'rgba(0, 194, 255, 0.6)';
+            if (val <= 90)  return 'rgba(41, 255, 214, 0.6)';
+            if (val <= 110) return 'rgba(92, 255, 171, 0.6)';
+            if (val <= 130) return 'rgba(143, 255, 127, 0.6)';
+            if (val <= 150) return 'rgba(214, 255, 51, 0.6)';
+            if (val <= 180) return 'rgba(255, 214, 0, 0.6)';
+            if (val <= 200) return 'rgba(255, 112, 0, 0.6)';
+            return 'rgba(255, 0, 0, 0.6)';
+        }
+
+        // ---------- แถบสีฝนสะสมทั้งเหตุการณ์ (เหมือนหน้า Animation) ----------
+        function getAccumColor(val) {
+            if (!(val > 10)) return 'transparent';
+            if (val <= 30)  return 'rgba(187, 247, 208, 0.7)';
+            if (val <= 50)  return 'rgba(74, 222, 128, 0.7)';
+            if (val <= 100) return 'rgba(22, 163, 74, 0.7)';
+            if (val <= 150) return 'rgba(253, 224, 71, 0.7)';
+            if (val <= 200) return 'rgba(234, 179, 8, 0.7)';
+            if (val <= 250) return 'rgba(249, 115, 22, 0.7)';
+            if (val <= 300) return 'rgba(234, 88, 12, 0.7)';
+            if (val <= 350) return 'rgba(239, 68, 68, 0.7)';
+            if (val <= 400) return 'rgba(220, 38, 38, 0.7)';
+            if (val <= 450) return 'rgba(185, 28, 28, 0.7)';
+            if (val <= 500) return 'rgba(168, 85, 247, 0.7)';
+            return 'rgba(126, 34, 206, 0.7)';
+        }
+
+        // ---------- Basemap เดียวกับหน้าอื่น ๆ: Esri Light Gray + OSM สำรอง ----------
+        const BASEMAPS = {
+            primary: {
+                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+                options: { maxZoom: 16, attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors' }
+            },
+            fallback: {
+                url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                options: { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }
+            }
+        };
+        function addBasemap(mapInstance) {
+            const primary = L.tileLayer(BASEMAPS.primary.url, BASEMAPS.primary.options).addTo(mapInstance);
+            let errors = 0, switched = false;
+            primary.on('tileerror', () => {
+                if (switched || ++errors < 3) return;
+                switched = true;
+                mapInstance.removeLayer(primary);
+                L.tileLayer(BASEMAPS.fallback.url, BASEMAPS.fallback.options).addTo(mapInstance).bringToBack();
+            });
+        }
+
+        // ---------- อ่านไฟล์ JSON ให้เป็นโครงสร้างเดียว (รองรับ matrix แบบแบน 1 มิติ และ 2 มิติ, NaN) ----------
+        function normalizeBounds(raw) {
+            if (!Array.isArray(raw) || raw.length !== 2 || !Array.isArray(raw[0]) || !Array.isArray(raw[1])) return null;
+            const a = raw[0], c = raw[1];
+            if (![a[0], a[1], c[0], c[1]].every(v => typeof v === 'number' && isFinite(v))) return null;
+            const latIdx = (a[0] < 30 && c[0] < 30) ? 0 : 1;      // ละติจูดของไทย < 30, ลองจิจูด > 90
+            const lngIdx = 1 - latIdx;
+            return [[Math.min(a[latIdx], c[latIdx]), Math.min(a[lngIdx], c[lngIdx])],
+                    [Math.max(a[latIdx], c[latIdx]), Math.max(a[lngIdx], c[lngIdx])]];
+        }
+        function flattenMatrix(m, rows, cols) {
+            if (!m) return null;
+            const out = new Float32Array(rows * cols);
+            if (Array.isArray(m[0])) {
+                for (let r = 0; r < rows; r++) { const row = m[r] || []; for (let c = 0; c < cols; c++) { const v = row[c]; out[r * cols + c] = (v > 0) ? v : 0; } }
+            } else {
+                if (m.length !== rows * cols) return null;
+                for (let i = 0; i < out.length; i++) { const v = m[i]; out[i] = (v > 0) ? v : 0; }
+            }
+            return out;
+        }
+        function parseFrame(text) {
+            const raw = JSON.parse(text.replace(/-?\bInfinity\b|\bNaN\b/g, 'null'));
+            const rows = raw.rows, cols = raw.cols;
+            const bounds = normalizeBounds(raw.bounds);
+            const accum = flattenMatrix(raw.accum_matrix, rows, cols);
+            if (!bounds || !rows || !cols || !accum) throw new Error('โครงสร้างไฟล์ไม่ถูกต้อง (ต้องมี bounds, rows, cols, accum_matrix)');
+            return { bounds, rows, cols, accum };
+        }
+
+        // ---------- โหลดไฟล์ที่เวลา 07:00 ของวันที่ระบุ (ถ้าไม่มีลองเวลาใกล้เคียง) ----------
+        function frameId(date) {
+            const p = n => String(n).padStart(2, '0');
+            return `${date.getFullYear()}${p(date.getMonth() + 1)}${p(date.getDate())}${p(date.getHours())}${p(date.getMinutes())}00`;
+        }
+        const boundaryCache = {};
+        function loadBoundaryFrame(day) {
+            if (boundaryCache[day]) return boundaryCache[day];
+            const base = new Date(EVENT_YEAR, EVENT_MONTH - 1, day, BOUNDARY_HOUR, 0, 0);
+            const offsets = [0];
+            for (let k = 1; k <= MAX_OFFSET_STEPS; k++) offsets.push(-k * RAW_STEP_MINUTES, k * RAW_STEP_MINUTES);
+            const tried = [];
+            boundaryCache[day] = (async () => {
+                for (const off of offsets) {
+                    const id = frameId(new Date(base.getTime() + off * 60000));
+                    tried.push(id);
+                    try {
+                        const res = await fetch(`data_json/data_${id}.json`);
+                        if (!res.ok) continue;
+                        const frame = parseFrame(await res.text());
+                        frame.id = id; frame.offsetMin = off;
+                        if (off !== 0) console.warn(`ไม่พบไฟล์เวลา 07:00 ของวันที่ ${day} — ใช้ data_${id}.json แทน (ต่างจาก 07:00 ${off} นาที)`);
+                        return frame;
+                    } catch (e) {
+                        console.warn(`อ่าน data_${id}.json ไม่ได้:`, e);
+                    }
+                }
+                const err = new Error(`ไม่พบไฟล์ข้อมูลรอบ ${day} ก.ย. 07:00 (ลอง ${tried[0]} ถึง ${tried[tried.length - 1]})`);
+                throw err;
+            })();
+            return boundaryCache[day];
+        }
+
+        // ---------- คำนวณค่าของแต่ละช่อง ----------
+        async function computePanelValues(panel) {
+            if (panel.kind === 'event') {
+                const last = await loadBoundaryFrame(panel.endDay);
+                return { bounds: last.bounds, rows: last.rows, cols: last.cols, values: last.accum, sources: [last.id] };
+            }
+            const [end, start] = await Promise.all([loadBoundaryFrame(panel.endDay), loadBoundaryFrame(panel.startDay)]);
+            if (end.rows !== start.rows || end.cols !== start.cols) throw new Error('ขนาดกริดของสองไฟล์ไม่ตรงกัน');
+            const n = end.rows * end.cols;
+            const values = new Float32Array(n);
+            let negative = 0;
+            for (let i = 0; i < n; i++) {
+                const d = end.accum[i] - start.accum[i];
+                if (d < -1) negative++;
+                values[i] = d > 0 ? d : 0;
+            }
+            if (negative / n > 0.01) {
+                console.warn(`[${panel.title}] ค่า accum_matrix ลดลงในบางพื้นที่ ${negative} ช่อง (${(100 * negative / n).toFixed(1)}%) — ตรวจว่า accum_matrix เป็นค่าสะสมต่อเนื่องจาก 24 ก.ย. 07:00 จริงหรือไม่`);
+            }
+            return { bounds: end.bounds, rows: end.rows, cols: end.cols, values, sources: [start.id, end.id] };
+        }
+
+        // ---------- Layer วาดกริดเรดาร์ ----------
+        L.PixelPerfectRadarLayer = L.Layer.extend({
+            initialize: function (data, colorFn, minVal) { this.data = data; this.colorFn = colorFn; this.minVal = minVal; },
+            onAdd: function (map) {
+                this._map = map;
+                this._canvas = L.DomUtil.create('canvas', 'leaflet-layer pixel-radar-layer');
+                this._canvas.style.pointerEvents = 'none';
+                map.getPanes().overlayPane.appendChild(this._canvas);
+                map.on('moveend viewreset zoomend resize', this._render, this);
+                this._render();
+            },
+            onRemove: function (map) {
+                map.getPanes().overlayPane.removeChild(this._canvas);
+                map.off('moveend viewreset zoomend resize', this._render, this);
+            },
+            _render: function () {
+                if (!this._map || !this.data) return;
+                const size = this._map.getSize();
+                this._canvas.width = size.x; this._canvas.height = size.y;
+                L.DomUtil.setPosition(this._canvas, this._map.containerPointToLayerPoint([0, 0]));
+                const ctx = this._canvas.getContext('2d');
+                ctx.clearRect(0, 0, size.x, size.y);
+
+                const { bounds: b, rows, cols, values } = this.data;
+                const colorFn = this.colorFn, minVal = this.minVal;
+                const pNW = this._map.latLngToContainerPoint([b[1][0], b[0][1]]);
+                const pSE = this._map.latLngToContainerPoint([b[0][0], b[1][1]]);
+                const cellW = (pSE.x - pNW.x) / cols, cellH = (pSE.y - pNW.y) / rows;
+
+                for (let r = 0; r < rows; r++) {
+                    const y0 = Math.round(pNW.y + r * cellH), y1 = Math.round(pNW.y + (r + 1) * cellH);
+                    if (y0 > size.y || y1 < 0) continue;
+                    for (let c = 0; c < cols; c++) {
+                        const val = values[r * cols + c];
+                        if (!(val > minVal)) continue;
+                        const x0 = Math.round(pNW.x + c * cellW), x1 = Math.round(pNW.x + (c + 1) * cellW);
+                        if (x0 > size.x || x1 < 0) continue;
+                        ctx.fillStyle = colorFn(val);
+                        ctx.fillRect(x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0));   // ชิดกันพอดี ไม่ซ้อนทับ
+                    }
+                }
+            }
+        });
+
+        // ---------- สร้างการ์ดแผนที่ ----------
+        const gridContainer = document.getElementById('grid-container');
+        const mapInstances = {};
+        const payloads = {};
+        const sharedPopup = L.popup({ closeButton: false, autoPan: false });
+        let provinceBounds = null;
+
+        panels.forEach(panel => {
+            const isEvent = panel.kind === 'event';
+            const card = document.createElement('div');
+            card.className = "bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col relative min-h-[340px] " + (isEvent ? "border-blue-300 ring-1 ring-blue-200" : "border-slate-200");
+            card.innerHTML = `
+                <div class="${isEvent ? 'bg-blue-700' : 'bg-slate-900'} text-white px-3 py-2 shrink-0 flex justify-between items-start gap-2">
+                    <div class="min-w-0">
+                        <div class="text-sm font-bold tracking-wide leading-tight">${panel.title}</div>
+                        <div class="text-[10px] font-medium opacity-80 leading-tight mt-0.5">${panel.period}</div>
+                    </div>
+                </div>
+                <div id="map-${panel.key}" class="radar-map-grid w-full flex-1 min-h-0 relative">
+                    <div id="status-${panel.key}" class="panel-status">กำลังโหลดข้อมูล…</div>
+                </div>
+                ${isEvent ? `
+                <div class="absolute bottom-3 right-3 z-20 bg-white/95 backdrop-blur-sm border border-slate-200 px-2.5 py-1.5 rounded-lg shadow-md flex flex-col gap-0.5 w-56">
+                    <span class="text-[9px] font-bold text-slate-600 tracking-wider">ฝนสะสมทั้งเหตุการณ์ (มม.)</span>
+                    <div class="w-full h-2.5 rounded flex border border-slate-300 overflow-hidden">
+                        <div class="flex-1" style="background-color: #bbf7d0;"></div><div class="flex-1" style="background-color: #4ade80;"></div>
+                        <div class="flex-1" style="background-color: #16a34a;"></div><div class="flex-1" style="background-color: #fde047;"></div>
+                        <div class="flex-1" style="background-color: #eab308;"></div><div class="flex-1" style="background-color: #f97316;"></div>
+                        <div class="flex-1" style="background-color: #ea580c;"></div><div class="flex-1" style="background-color: #ef4444;"></div>
+                        <div class="flex-1" style="background-color: #dc2626;"></div><div class="flex-1" style="background-color: #b91c1c;"></div>
+                        <div class="flex-1" style="background-color: #a855f7;"></div><div class="flex-1" style="background-color: #7e22ce;"></div>
+                    </div>
+                    <div class="flex justify-between text-[8px] font-mono font-bold text-slate-600 px-0.5">
+                        <span>10</span><span>50</span><span>100</span><span>150</span><span>200</span><span>300</span><span>400</span><span class="text-purple-700 font-black">500+</span>
+                    </div>
+                </div>` : ''}
+            `;
+            gridContainer.appendChild(card);
+
+            const map = L.map(`map-${panel.key}`, {
+                zoomSnap: 0.25, zoomControl: false, attributionControl: false,
+                dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
+                touchZoom: false, boxZoom: false, keyboard: false
+            }).setView([13.7563, 100.5018], 10);
+            addBasemap(map);
+            mapInstances[panel.key] = map;
+
+            map.on('mousemove', e => {
+                const pl = payloads[panel.key];
+                if (!pl) return;
+                const b = pl.bounds, lat = e.latlng.lat, lng = e.latlng.lng;
+                if (lat >= b[0][0] && lat <= b[1][0] && lng >= b[0][1] && lng <= b[1][1]) {
+                    const c = Math.floor(((lng - b[0][1]) / (b[1][1] - b[0][1])) * pl.cols);
+                    const r = Math.floor(((b[1][0] - lat) / (b[1][0] - b[0][0])) * pl.rows);
+                    if (r >= 0 && r < pl.rows && c >= 0 && c < pl.cols) {
+                        const val = pl.values[r * pl.cols + c];
+                        sharedPopup.setLatLng(e.latlng).setContent(`<div class="p-1 font-mono text-xs text-blue-950 font-bold">${panel.title}: ${val.toFixed(1)} มม.</div>`).openOn(map);
+                        return;
+                    }
+                }
+                map.closePopup(sharedPopup);
+            });
+            map.on('mouseout', () => map.closePopup(sharedPopup));
+
+            // โหลดข้อมูลฝนของช่องนี้
+            computePanelValues(panel).then(data => {
+                payloads[panel.key] = data;
+                new L.PixelPerfectRadarLayer(data, panel.kind === 'event' ? getAccumColor : getDailyAccumColor, panel.minVal).addTo(map);
+                document.getElementById(`status-${panel.key}`).remove();
+            }).catch(err => {
+                console.error(`[${panel.title}]`, err);
+                const st = document.getElementById(`status-${panel.key}`);
+                st.classList.add('error');
+                st.textContent = `โหลดข้อมูลไม่ได้: ${err.message}`;
+            });
+        });
+
+        // ---------- ขอบเขตจังหวัด + เขต วางทับทุกแผนที่ แล้วปรับมุมมองให้พอดีการ์ด ----------
+        function fitAll() {
+            if (!provinceBounds) return;
+            panels.forEach(p => { const m = mapInstances[p.key]; m.invalidateSize(); m.fitBounds(provinceBounds, { padding: [8, 8], animate: false }); });
+        }
+        function fetchFirstOk(paths) {
+            return paths.reduce((chain, path) => chain.then(j => j || fetch(path).then(r => r.ok ? r.json() : null).catch(() => null)), Promise.resolve(null));
+        }
+        fetchFirstOk(['data/bangkok_province_boundary.geojson', 'data/bangkok_boundary.geojson']).then(geo => {
+            if (!geo) return;
+            panels.forEach(p => L.geoJSON(geo, { interactive: false, style: { color: '#0f172a', weight: 2.6, fillColor: 'transparent', fillOpacity: 0 } }).addTo(mapInstances[p.key]));
+            provinceBounds = L.geoJSON(geo).getBounds();
+            fitAll();
+        });
+        fetch('data/bangkok_district_boundary.geojson').then(r => r.ok ? r.json() : null).then(geo => {
+            if (!geo) return;
+            panels.forEach(p => L.geoJSON(geo, { interactive: false, style: { color: '#1e293b', weight: 1, opacity: 0.8, fillOpacity: 0 } }).addTo(mapInstances[p.key]));
+        }).catch(() => {});
+
+        let resizeTimer = null;
+        new ResizeObserver(() => { clearTimeout(resizeTimer); resizeTimer = setTimeout(fitAll, 120); }).observe(gridContainer);
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>

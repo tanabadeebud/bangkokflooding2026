@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Bangkok Flood 2026 - Weather Data</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      /* Radar4Flood brand reskin: map the dashboard's existing blue-* utility classes */
+      /* onto the official Radar4Flood palette, and use the same Thai-friendly font.   */
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              blue: { 50:'#F3F9FE', 100:'#E6F1FD', 200:'#BFDDFB', 300:'#93C6F9', 400:'#6AB2F6',
+                      500:'#429FF3', 600:'#1E6FD9', 700:'#14479C', 800:'#0A2E63', 900:'#001E45', 950:'#00132E' }
+            },
+            fontFamily: {
+              sans: ['"IBM Plex Sans Thai"', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+            },
+            borderRadius: { lg: '10px', xl: '14px', '2xl': '18px' }
+          }
+        }
+      }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .synoptic-slide { display: none; position: absolute; inset: 0; padding: 4px; }
+        .synoptic-slide.active { display: block; }
+        /* แผนที่ใหญ่สุดเท่าที่ความกว้างคอลัมน์และความสูงจอให้ (ไม่ล้นหน้า) */
+        .synoptic-stage { aspect-ratio: 3 / 2; width: min(100%, calc((100vh - 260px) * 1.5)); margin-inline: auto; }
+        @media (max-width: 1023px) { .synoptic-stage { width: 100%; } }
+        .tl-item.active { background: #ffffff; box-shadow: 0 0 0 1px #bfdbfe, 0 1px 3px rgba(15,23,42,.08); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-screen max-h-screen overflow-hidden flex flex-col md:flex-row select-none">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col justify-between p-4 shrink-0 shadow-sm z-30">
+        <div>
+            <a href="https://radar4flood.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-2 py-4 border-b border-slate-100 mb-4 hover:bg-slate-50 rounded-lg transition-colors" title="ไปยังเว็บไซต์ radar4flood.com">
+                <img src="Radar4flood_Icon_PNG.png" alt="Radar4Flood Logo" class="w-10 h-10 object-contain shrink-0">
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-900 data-lang" data-en="Bangkok Flood 2026" data-th="เหตุการณ์น้ำท่วมกรุงเทพมหานคร กันยายน 2569">เหตุการณ์น้ำท่วมกรุงเทพมหานคร กันยายน 2569</h1>
+                    <p class="text-xs text-slate-500 font-medium data-lang" data-en="Event Analysis Dashboard" data-th="แดชบอร์ดวิเคราะห์สถานการณ์">แดชบอร์ดวิเคราะห์สถานการณ์</p>
+                </div>
+            </a>
+
+            <nav class="space-y-1">
+                <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="file-text" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="1. Summary" data-th="1. สรุปภาพรวมเหตุการณ์">1. สรุปภาพรวมเหตุการณ์</span>
+                </a>
+                <a href="weather_data.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-blue-700 font-semibold shadow-sm transition-all">
+                    <i data-lucide="wind" class="w-5 h-5 text-blue-600"></i>
+                    <span class="data-lang" data-en="2. Weather Data" data-th="2. ข้อมูลสภาพอากาศ">2. ข้อมูลสภาพอากาศ</span>
+                </a>
+                <a href="rainfall_stations.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="cloud-rain" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="3. Rainfall Station Data" data-th="3. ข้อมูลสถานีวัดน้ำฝน">3. ข้อมูลสถานีวัดน้ำฝน</span>
+                </a>
+                <a href="radar_animation.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="play-circle" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="4. Radar Rainfall Animation" data-th="4. ภาพเคลื่อนไหวฝนเรดาร์">4. ภาพเคลื่อนไหวฝนเรดาร์</span>
+                </a>
+                <a href="spatial_radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="map-pin" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="5. Spatial Radar Rainfall" data-th="5. ปริมาณฝนเรดาร์เชิงพื้นที่">5. ปริมาณฝนเรดาร์เชิงพื้นที่</span>
+                </a>
+                <a href="daily_radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="calendar-days" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="6. Daily Radar Accumulation" data-th="6. ฝนสะสมรายวันจากเรดาร์">6. ฝนสะสมรายวันจากเรดาร์</span>
+                </a>
+            </nav>
+        </div>
+        <div class="pt-4 border-t border-slate-100 text-center text-xs text-slate-400 font-medium hidden md:block">
+            <p>Bangkok Monitoring Project v1.0</p>
+        </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="flex-1 flex flex-col h-screen max-h-screen min-w-0 p-4 md:p-6 gap-4 overflow-auto relative">
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-200 gap-2 shrink-0">
+            <div>
+                <h2 class="text-2xl font-bold tracking-tight text-slate-900 data-lang" data-en="Weather Data" data-th="ข้อมูลสภาพอากาศ">ข้อมูลสภาพอากาศ</h2>
+                <p class="text-sm text-slate-500 mt-1 data-lang" data-en="Surface weather maps and low-level wind fields describing the meteorological causes of the Sep 2026 Bangkok flood event." data-th="แผนที่อากาศผิวพื้น เพื่ออธิบายสาเหตุเชิงอุตุนิยมวิทยาของสถานการณ์น้ำท่วมกรุงเทพมหานคร เดือนกันยายน 2569">แผนที่อากาศผิวพื้น เพื่ออธิบายสาเหตุเชิงอุตุนิยมวิทยาของสถานการณ์น้ำท่วมกรุงเทพมหานคร เดือนกันยายน 2569</p>
+            </div>
+        </header>
+
+        <!-- ซ้าย: แผนที่อากาศ / ขวา: ลำดับเหตุการณ์ -->
+        <section class="grid grid-cols-1 lg:grid-cols-[minmax(0,2.3fr)_minmax(320px,1fr)] gap-4 items-stretch shrink-0">
+
+            <!-- Weather map time series -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3">
+                <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-2 shrink-0">
+                    <div class="min-w-0">
+                        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="cloud-sun" class="w-5 h-5 text-blue-600 shrink-0"></i>
+                            <span class="data-lang" data-en="1. Surface Weather Map (Time Series)" data-th="แผนที่อากาศผิวพื้น">แผนที่อากาศผิวพื้น</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5 data-lang" data-en="Surface synoptic chart, shown every 6 hours across the event" data-th="แผนที่อากาศผิวพื้น จากกรมอุตุนิยมวิทยา แสดงรูปทุกๆ 6 ชั่วโมงตลอดช่วงเหตุการณ์">แผนที่อากาศผิวพื้น จากกรมอุตุนิยมวิทยา แสดงรูปทุกๆ 6 ชั่วโมงตลอดช่วงเหตุการณ์</p>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="changeSynopticSlide(-1)" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition text-slate-700">
+                            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                        </button>
+                        <select id="synoptic-time-select" onchange="setSynopticSlide(parseInt(this.value, 10))" class="text-xs font-bold font-mono bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg text-slate-800 min-w-[190px] text-center border border-slate-200 shadow-sm outline-none focus:border-blue-500 cursor-pointer" title="เลือกวันและเวลาของแผนที่อากาศ"></select>
+                        <button onclick="changeSynopticSlide(1)" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition text-slate-700">
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="toggleSynopticPlay()" id="btn-synoptic-play" class="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition shadow-sm ml-1">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> <span class="data-lang" data-en="Auto-play" data-th="เล่นอัตโนมัติ">เล่นอัตโนมัติ</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- รูปแผนที่ขยายเต็มพื้นที่ซ้ายมือ (สัดส่วนภาพ 3:2) -->
+                <div class="synoptic-stage bg-slate-900 rounded-lg overflow-hidden border border-slate-200 relative shadow-inner">
+                    <div class="synoptic-slide active">
+                        <img src="data/synoptic/20260924_00.jpg" alt="24 ก.ย. 2569 07:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260924_06.jpg" alt="24 ก.ย. 2569 13:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260924_12.jpg" alt="24 ก.ย. 2569 19:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260924_18.jpg" alt="25 ก.ย. 2569 01:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260925_00.jpg" alt="25 ก.ย. 2569 07:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260925_06.jpg" alt="25 ก.ย. 2569 13:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260925_12.jpg" alt="25 ก.ย. 2569 19:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260925_18.jpg" alt="26 ก.ย. 2569 01:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260926_00.jpg" alt="26 ก.ย. 2569 07:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260926_06.jpg" alt="26 ก.ย. 2569 13:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260926_12.jpg" alt="26 ก.ย. 2569 19:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260926_18.jpg" alt="27 ก.ย. 2569 01:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260927_00.jpg" alt="27 ก.ย. 2569 07:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260927_06.jpg" alt="27 ก.ย. 2569 13:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260927_12.jpg" alt="27 ก.ย. 2569 19:00 น." class="w-full h-full object-contain">
+                    </div>
+                    <div class="synoptic-slide">
+                        <img src="data/synoptic/20260927_18.jpg" alt="28 ก.ย. 2569 01:00 น." class="w-full h-full object-contain">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="bg-slate-50 rounded-xl border border-slate-200 shadow-sm relative">
+              <div class="p-4 flex flex-col lg:absolute lg:inset-0">
+                <h4 class="font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-200 pb-2 shrink-0">
+                    <i data-lucide="route" class="w-4 h-4 text-blue-600 shrink-0"></i>
+                    <span>ลำดับการเคลื่อนตัวของหย่อมความกดอากาศต่ำ (24–28 ก.ย. 2569)</span>
+                </h4>
+                <p class="text-[11px] text-slate-400 mt-1 shrink-0">กดที่วันที่เพื่อดูแผนที่อากาศของวันนั้น</p>
+
+                <div id="timeline-scroll" class="mt-3 lg:flex-1 lg:min-h-0 lg:overflow-y-auto pr-1">
+                    <div class="relative border-l-2 border-slate-200 ml-3 space-y-2">
+                    <div class="tl-item relative pl-6 pr-3 py-2 rounded-lg transition cursor-pointer hover:bg-white" data-day="24" onclick="goToDay(24)" title="ดูแผนที่อากาศของวันที่ 24 ก.ย.">
+                        <span class="absolute -left-[11px] top-3 bg-amber-500 rounded-full w-5 h-5 border-4 border-white shadow-sm"></span>
+                        <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">24 ก.ย.</span>
+                        <h5 class="text-sm font-bold text-slate-900 mt-1">เคลื่อนจากกัมพูชาเข้าภาคตะวันออกของไทย</h5>
+                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">หย่อมความกดอากาศต่ำเคลื่อนตัวจากประเทศกัมพูชาเข้าสู่ภาคตะวันออกของไทยในวันที่ 24 กันยายน เหนี่ยวนำให้เกิดกระแสลมหมุนทวนเข็มนาฬิกาดึงความชื้นเข้าสู่ศูนย์กลาง ในขณะที่กรุงเทพมหานครเริ่มมีฝนตกในช่วงกลางดึก</p>
+                    </div>
+                    <div class="tl-item relative pl-6 pr-3 py-2 rounded-lg transition cursor-pointer hover:bg-white" data-day="25" onclick="goToDay(25)" title="ดูแผนที่อากาศของวันที่ 25 ก.ย.">
+                        <span class="absolute -left-[11px] top-3 bg-red-600 rounded-full w-5 h-5 border-4 border-white shadow-sm"></span>
+                        <span class="text-xs font-bold text-white bg-red-600 px-2 py-0.5 rounded-md">25 ก.ย.</span>
+                        <h5 class="text-sm font-bold text-red-900 mt-1">ศูนย์กลางปกคลุมสระแก้ว-นครนายก กทม. ฝนหนักต่อเนื่อง</h5>
+                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">วันที่ 25 กันยายน ศูนย์กลางฯ ได้เคลื่อนเข้าปกคลุมบริเวณจังหวัดสระแก้วและนครนายก ส่งผลให้กรุงเทพมหานคร มีฝนตกหนักอย่างต่อเนื่องจนถึงช่วงดึก</p>
+                    </div>
+                    <div class="tl-item relative pl-6 pr-3 py-2 rounded-lg transition cursor-pointer hover:bg-white" data-day="26" onclick="goToDay(26)" title="ดูแผนที่อากาศของวันที่ 26 ก.ย.">
+                        <span class="absolute -left-[11px] top-3 bg-orange-500 rounded-full w-5 h-5 border-4 border-white shadow-sm"></span>
+                        <span class="text-xs font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-md">26 ก.ย.</span>
+                        <h5 class="text-sm font-bold text-slate-900 mt-1">ศูนย์กลางเคลื่อนขึ้นสระบุรี ฝน กทม. เริ่มซาและหยุดตก</h5>
+                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">วันที่ 26 กันยายน ศูนย์กลางได้เคลื่อนขึ้นไปทางจังหวัดสระบุรี ทำให้ฝนในกรุงเทพมหานครเริ่มซาลงและหยุดตกในที่สุดช่วงกลางดึก</p>
+                    </div>
+                    <div class="tl-item relative pl-6 pr-3 py-2 rounded-lg transition cursor-pointer hover:bg-white" data-day="27" onclick="goToDay(27)" title="ดูแผนที่อากาศของวันที่ 27 ก.ย.">
+                        <span class="absolute -left-[11px] top-3 bg-blue-500 rounded-full w-5 h-5 border-4 border-white shadow-sm"></span>
+                        <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">27 ก.ย.</span>
+                        <h5 class="text-sm font-bold text-slate-900 mt-1">ข้ามเทือกเขาถนนธงชัย ลมตะวันตกเฉียงใต้ดึงความชื้นเข้า กทม. อีกครั้ง</h5>
+                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">ในวันที่ 27 กันยายน ศูนย์กลางฯ ได้เคลื่อนข้ามเทือกเขาถนนธงชัยลงสู่อ่าวเมาะตะมะ ส่งผลให้ลมตะวันตกเฉียงใต้ดึงความชื้นจากอ่าวไทยเข้าสู่กรุงเทพมหานครอีกครั้ง เกิดฝนตกสลับหยุดตลอดทั้งวัน</p>
+                    </div>
+                    <div class="tl-item relative pl-6 pr-3 py-2 rounded-lg transition cursor-pointer hover:bg-white" data-day="28" onclick="goToDay(28)" title="ดูแผนที่อากาศของวันที่ 28 ก.ย.">
+                        <span class="absolute -left-[11px] top-3 bg-emerald-500 rounded-full w-5 h-5 border-4 border-white shadow-sm"></span>
+                        <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">28 ก.ย.</span>
+                        <h5 class="text-sm font-bold text-emerald-900 mt-1">กลุ่มฝนสลายตัวและลดลง</h5>
+                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">ก่อนที่กลุ่มฝนจะเริ่มสลายตัวและลดลงในช่วงเย็นของวันที่ 28 กันยายน</p>
+                    </div>
+                    </div>
+                </div>
+            </div>
+              </div>
+        </section>
+    </main>
+
+    <script>
+        // --- Weather map slider ---
+        let currentSynopticIdx = 0;
+        let synopticInterval = null;
+        const synopticTimesTH = ["24 ก.ย. 2569 07:00 น.", "24 ก.ย. 2569 13:00 น.", "24 ก.ย. 2569 19:00 น.", "25 ก.ย. 2569 01:00 น.", "25 ก.ย. 2569 07:00 น.", "25 ก.ย. 2569 13:00 น.", "25 ก.ย. 2569 19:00 น.", "26 ก.ย. 2569 01:00 น.", "26 ก.ย. 2569 07:00 น.", "26 ก.ย. 2569 13:00 น.", "26 ก.ย. 2569 19:00 น.", "27 ก.ย. 2569 01:00 น.", "27 ก.ย. 2569 07:00 น.", "27 ก.ย. 2569 13:00 น.", "27 ก.ย. 2569 19:00 น.", "28 ก.ย. 2569 01:00 น."];
+        const synopticTimesEN = ["24 Sep 2026 00:00 ICT", "24 Sep 2026 06:00 ICT", "24 Sep 2026 12:00 ICT", "24 Sep 2026 18:00 ICT", "25 Sep 2026 00:00 ICT", "25 Sep 2026 06:00 ICT", "25 Sep 2026 12:00 ICT", "25 Sep 2026 18:00 ICT", "26 Sep 2026 00:00 ICT", "26 Sep 2026 06:00 ICT", "26 Sep 2026 12:00 ICT", "26 Sep 2026 18:00 ICT", "27 Sep 2026 00:00 ICT", "27 Sep 2026 06:00 ICT", "27 Sep 2026 12:00 ICT", "27 Sep 2026 18:00 ICT"];
+
+        function setSynopticSlide(idx) {
+            const slides = document.querySelectorAll('.synoptic-slide');
+            if (slides.length === 0) return;
+            slides[currentSynopticIdx].classList.remove('active');
+            currentSynopticIdx = (idx + slides.length) % slides.length;
+            slides[currentSynopticIdx].classList.add('active');
+            const sel = document.getElementById('synoptic-time-select');
+            if (sel) sel.value = currentSynopticIdx;
+            highlightTimeline();
+        }
+
+        function changeSynopticSlide(direction) {
+            setSynopticSlide(currentSynopticIdx + direction);
+        }
+
+        // วันที่ของแผนที่ที่กำลังแสดง (ตามเวลาท้องถิ่นในป้ายเวลา) -> ไฮไลต์เหตุการณ์ของวันนั้นด้านขวา
+        function currentSynopticDay() {
+            return parseInt(synopticTimesTH[currentSynopticIdx], 10);
+        }
+        function highlightTimeline() {
+            const day = currentSynopticDay();
+            document.querySelectorAll('.tl-item').forEach(el => {
+                el.classList.toggle('active', parseInt(el.dataset.day, 10) === day);
+            });
+        }
+        // กดเหตุการณ์ของวันที่ใด -> ไปยังแผนที่แรกของวันนั้น
+        function goToDay(day) {
+            const idx = synopticTimesTH.findIndex(t => parseInt(t, 10) === day);
+            if (idx >= 0) setSynopticSlide(idx);
+        }
+
+        // Dropdown เลือกวัน-เวลาของแผนที่อากาศ
+        function buildTimeSelect() {
+            const sel = document.getElementById('synoptic-time-select');
+            if (!sel) return;
+            const labels = currentLang === 'en' ? synopticTimesEN : synopticTimesTH;
+            sel.innerHTML = labels.map((t, i) => `<option value="${i}">${t}</option>`).join('');
+            sel.value = currentSynopticIdx;
+        }
+
+        function toggleSynopticPlay() {
+            const btn = document.getElementById('btn-synoptic-play');
+            const label = currentLang === 'en' ? 'Auto-play' : 'เล่นอัตโนมัติ';
+            const pauseLabel = currentLang === 'en' ? 'Pause' : 'หยุดชั่วคราว';
+            if (synopticInterval) {
+                clearInterval(synopticInterval);
+                synopticInterval = null;
+                btn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> ${label}`;
+            } else {
+                synopticInterval = setInterval(() => changeSynopticSlide(1), 1500);
+                btn.innerHTML = `<i data-lucide="pause" class="w-3.5 h-3.5"></i> ${pauseLabel}`;
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // --- Language toggle (shared pattern with other pages; UI toggle currently removed, Thai-only) ---
+        let currentLang = 'th';
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'th' ? 'en' : 'th';
+            document.querySelectorAll('.data-lang').forEach(el => {
+                const text = el.getAttribute(`data-${currentLang}`);
+                if (text) el.innerText = text;
+            });
+            buildTimeSelect();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            buildTimeSelect();
+            highlightTimeline();
+            if (window.lucide) lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Bangkok Flood 2026 - Rainfall Station Data</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      /* Radar4Flood brand reskin: map the dashboard's existing blue-* utility classes */
+      /* onto the official Radar4Flood palette, and use the same Thai-friendly font.   */
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              blue: { 50:'#F3F9FE', 100:'#E6F1FD', 200:'#BFDDFB', 300:'#93C6F9', 400:'#6AB2F6',
+                      500:'#429FF3', 600:'#1E6FD9', 700:'#14479C', 800:'#0A2E63', 900:'#001E45', 950:'#00132E' }
+            },
+            fontFamily: {
+              sans: ['"IBM Plex Sans Thai"', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+            },
+            borderRadius: { lg: '10px', xl: '14px', '2xl': '18px' }
+          }
+        }
+      }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        #map { z-index: 1; }
+        .leaflet-control-layers {
+            font-family: ui-sans-serif, system-ui, sans-serif !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            color: #334155 !important;
+            border-radius: 8px !important;
+            border: 1px solid #cbd5e1 !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+        }
+        .leaflet-control-layers-overlays label {
+            margin-bottom: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-screen max-h-screen overflow-hidden flex flex-col md:flex-row select-none">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col justify-between p-4 shrink-0 shadow-sm z-30">
+        <div>
+            <a href="https://radar4flood.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-2 py-4 border-b border-slate-100 mb-4 hover:bg-slate-50 rounded-lg transition-colors" title="ไปยังเว็บไซต์ radar4flood.com">
+                <img src="Radar4flood_Icon_PNG.png" alt="Radar4Flood Logo" class="w-10 h-10 object-contain shrink-0">
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-900 data-lang" data-en="Bangkok Flood 2026" data-th="เหตุการณ์น้ำท่วมกรุงเทพมหานคร กันยายน 2569">เหตุการณ์น้ำท่วมกรุงเทพมหานคร กันยายน 2569</h1>
+                    <p class="text-xs text-slate-500 font-medium data-lang" data-en="Event Analysis Dashboard" data-th="แดชบอร์ดวิเคราะห์สถานการณ์">แดชบอร์ดวิเคราะห์สถานการณ์</p>
+                </div>
+            </a>
+
+            <nav class="space-y-1">
+                <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="file-text" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="1. Summary" data-th="1. สรุปภาพรวมเหตุการณ์">1. สรุปภาพรวมเหตุการณ์</span>
+                </a>
+                <a href="weather_data.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="wind" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="2. Weather Data" data-th="2. ข้อมูลสภาพอากาศ">2. ข้อมูลสภาพอากาศ</span>
+                </a>
+                <a href="rainfall_stations.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-blue-700 font-semibold shadow-sm transition-all">
+                    <i data-lucide="cloud-rain" class="w-5 h-5 text-blue-600"></i>
+                    <span class="data-lang" data-en="3. Rainfall Station Data" data-th="3. ข้อมูลสถานีวัดน้ำฝน">3. ข้อมูลสถานีวัดน้ำฝน</span>
+                </a>
+                <a href="radar_animation.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="play-circle" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="4. Radar Rainfall Animation" data-th="4. ภาพเคลื่อนไหวฝนเรดาร์">4. ภาพเคลื่อนไหวฝนเรดาร์</span>
+                </a>
+                <a href="spatial_radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="map-pin" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="5. Spatial Radar Rainfall" data-th="5. ปริมาณฝนเรดาร์เชิงพื้นที่">5. ปริมาณฝนเรดาร์เชิงพื้นที่</span>
+                </a>
+                <a href="daily_radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">
+                    <i data-lucide="calendar-days" class="w-5 h-5 text-slate-400"></i>
+                    <span class="data-lang" data-en="6. Daily Radar Accumulation" data-th="6. ฝนสะสมรายวันจากเรดาร์">6. ฝนสะสมรายวันจากเรดาร์</span>
+                </a>
+            </nav>
+        </div>
+        <div class="pt-4 border-t border-slate-100 text-center text-xs text-slate-400 font-medium hidden md:block">
+            <p>Bangkok Monitoring Project v1.0</p>
+        </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="flex-1 flex flex-col h-screen max-h-screen min-w-0 p-6 md:p-8 space-y-6 overflow-hidden relative">
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200 gap-4">
+            <div>
+                <h2 class="text-2xl font-bold tracking-tight text-slate-900 data-lang" data-en="Telemetric Rainfall Station Data" data-th="ข้อมูลฝนจากสถานีโทรมาตร">ข้อมูลฝนจากสถานีโทรมาตร</h2>
+                <div class="mt-1 flex flex-wrap items-center gap-2">
+                    <p class="text-sm text-slate-500 data-lang" data-en="Automated Rain Gauge Data in Bangkok from Related Agencies" data-th="การแสดงข้อมูลฝนจากสถานีวัดน้ำฝนแบบอัตโนมัติในจังหวัดกรุงเทพมหานคร จากหน่วยงานต่าง ๆ ที่เกี่ยวข้อง">การแสดงข้อมูลฝนจากสถานีวัดน้ำฝนแบบอัตโนมัติในจังหวัดกรุงเทพมหานคร จากสำนักการระบายน้ำ กรุงเทพมหานคร</p>
+                </div>
+            </div>
+
+            <!-- Time Scale Buttons -->
+            <div class="inline-flex p-1 bg-slate-200/80 rounded-xl self-start sm:self-center shadow-inner shrink-0">
+                <button onclick="switchTimeScale('hourly')" id="btn-scale-hourly" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900 data-lang" data-en="Hourly" data-th="รายชั่วโมง">รายชั่วโมง</button>
+                <button onclick="switchTimeScale('daily')" id="btn-scale-daily" class="px-3 py-1.5 text-xs font-bold rounded-lg transition-all text-blue-700 bg-white shadow-sm data-lang" data-en="Daily" data-th="รายวัน">รายวัน</button>
+                <button onclick="switchTimeScale('event')" id="btn-scale-event" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900 data-lang" data-en="Total Event Accumulation" data-th="สะสมทั้งเหตุการณ์">สะสมทั้งเหตุการณ์</button>
+            </div>
+        </header>
+
+        <!-- Control Bar -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-4">
+            <div class="flex-1 w-full relative">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3.5"></i>
+                <input type="text" id="search-input" placeholder="ค้นหาด้วยรหัส, ชื่อสถานี, หรือเขต.." data-placeholder-en="Search by code, name, district..." data-placeholder-th="ค้นหาด้วยรหัส, ชื่อสถานี, หรือเขต..." class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-blue-500 bg-slate-50/50">
+            </div>
+
+            <!-- Date Stepper -->
+            <div id="date-stepper-panel" class="flex items-center gap-2 shrink-0 bg-slate-100/80 p-1 border border-slate-200 rounded-lg w-full sm:w-auto justify-between sm:justify-start">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider pl-2 hidden lg:inline data-lang" data-en="Date:" data-th="วันที่:">วันที่:</span>
+                <button onclick="adjustTimeIndex(-1)" class="p-1.5 bg-white border rounded-md shadow-sm text-slate-700 hover:bg-slate-100 transition">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                </button>
+                <select id="date-select-dropdown" onchange="onTimeDropdownChange(this.value)" class="bg-white text-xs font-mono font-bold border rounded-md px-3 py-1.5 outline-none text-slate-700 shadow-sm w-48">
+                </select>
+                <button onclick="adjustTimeIndex(1)" class="p-1.5 bg-white border rounded-md shadow-sm text-slate-700 hover:bg-slate-100 transition">
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="w-full sm:w-64 flex items-center gap-2">
+                <i data-lucide="filter" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                <select id="agency-filter" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 shadow-sm">
+                    <option value="ALL" class="data-lang" data-en="All Agencies (Show All)" data-th="ทุกหน่วยงาน (แสดงทั้งหมด)">ทุกหน่วยงาน (แสดงทั้งหมด)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-5 gap-6 items-stretch flex-1 min-h-0 h-full overflow-hidden">
+            <!-- Map Container -->
+            <div class="xl:col-span-3 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-full min-h-0">
+                <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 text-xs font-bold text-slate-500 tracking-wide uppercase flex items-center justify-between shrink-0">
+                    <span class="flex items-center gap-2 data-lang" data-en="Rainfall Monitoring Station Map" data-th="แผนที่ตำแหน่งสถานีวัดน้ำฝนในกรุงเทพมหานคร"><i data-lucide="map" class="w-3.5 h-3.5"></i> แผนที่ตำแหน่งสถานีวัดน้ำฝนในกรุงเทพมหานคร</span>
+                    <div id="legend-threshold-labels" class="flex items-center gap-2 tracking-normal capitalize font-medium text-[11px]"></div>
+                </div>
+                <div id="map" class="w-full flex-1 bg-slate-100 min-h-0"></div>
+            </div>
+
+            <!-- Station List Panel -->
+            <div class="xl:col-span-2 flex flex-col h-full min-h-0 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 text-xs font-bold text-slate-500 tracking-wide uppercase flex justify-between items-center shrink-0">
+                    <span class="flex items-center gap-2 data-lang" data-en="Station List" data-th="รายชื่อสถานีวัดน้ำฝน"><i data-lucide="list-ordered" class="w-3.5 h-3.5"></i> รายชื่อสถานีวัดน้ำฝน</span>
+                    <span id="counter-badge" class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[11px] font-bold">0 Active</span>
+                </div>
+
+                <div id="stations-list-container" class="p-4 overflow-y-auto divide-y divide-slate-100 flex-1 min-h-0 space-y-3 bg-slate-50/30"></div>
+
+                <div class="p-3.5 bg-slate-50 border-t border-slate-200 text-[11px] text-slate-500 leading-relaxed shrink-0 mt-auto">
+                    <div class="flex items-center gap-1.5 font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                        <i data-lucide="award" class="w-3.5 h-3.5 text-blue-600"></i>
+                        <span class="data-lang" data-en="Data Provider Acknowledgement" data-th="กิตติกรรมประกาศผู้สนับสนุนข้อมูล">กิตติกรรมประกาศผู้สนับสนุนข้อมูล</span>
+                    </div>
+                    <ul class="space-y-1 font-semibold text-slate-700 font-mono text-[10px]">
+                        <li>• สำนักการระบายน้ำ กรุงเทพมหานคร</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Comparison Trigger Button -->
+        <div id="compare-float-bar" class="absolute bottom-10 right-12 z-40 hidden">
+            <button onclick="triggerCompareModal()" class="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-full shadow-2xl transition flex items-center gap-2.5 border-2 border-white animate-bounce">
+                <i data-lucide="layers" class="w-4 h-4"></i>
+                <span>เปรียบเทียบกราฟฝนสะสม (<span id="compare-count-badge">0</span>/5)</span>
+            </button>
+        </div>
+    </main>
+
+    <!-- Hydrograph Modal (Single Station Mass Curve) -->
+    <div id="graph-modal-overlay" class="fixed inset-0 bg-slate-900/60 z-50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-4xl rounded-xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <div>
+                    <h3 id="modal-station-title" class="text-base font-bold text-slate-900">Rainfall Cumulative Mass Curve</h3>
+                    <p id="modal-station-subtitle" class="text-xs text-slate-500 mt-0.5"></p>
+                </div>
+                <button onclick="closeGraphModal()" class="p-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg shadow-sm transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1 bg-white">
+                <div class="relative w-full h-[350px]">
+                    <canvas id="mass-curve-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison Modal (Multi-Station Mass Curve) -->
+    <div id="compare-modal-overlay" class="fixed inset-0 bg-slate-900/60 z-50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-5xl rounded-xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="line-chart" class="w-5 h-5 text-blue-600"></i> เปรียบเทียบปริมาณฝนสะสมเชิงเวลา (Mass Curve Comparison)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">แสดงการสะสมของปริมาณฝนในสถานีที่เลือกสูงสุด 5 สถานี</p>
+                </div>
+                <button onclick="closeCompareModal()" class="p-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg shadow-sm transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1 bg-white">
+                <div class="relative w-full h-[400px]">
+                    <canvas id="compare-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stationsData = [];
+        let stationTelemetryDB = {};
+        let timeControlTimeline = { "daily_steps": [], "hourly_steps": [] };
+        let map, markerLayerGroup, popupChartInstance = null, compareChartInstance = null;
+        let nativeLayerControl = null;
+
+        let currentTimeScale = 'daily'; 
+        let currentTimeIndex = 0;        
+        let currentLang = 'th';
+
+        // Selected stations for comparison (Max 5)
+        let selectedCompareCodes = [];
+        const COLOR_PALETTE = ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#9333ea'];
+
+        function getThresholdColor(val, scale) {
+            if (val === "-" || val === null || isNaN(val) || val < 0.2) return "#e2e8f0";
+
+            if (scale === 'hourly') {
+                if (val <= 5) return "#10b981";    
+                if (val <= 25) return "#f59e0b";   
+                if (val <= 50) return "#ef4444";   
+                return "#9333ea";                  
+            } else if (scale === 'daily') {
+                if (val <= 10) return "#10b981";  
+                if (val <= 35) return "#f59e0b";  
+                if (val <= 90) return "#ef4444";  
+                return "#9333ea";                  
+            } else { 
+                if (val <= 50) return "#10b981";  
+                if (val <= 150) return "#f59e0b"; 
+                if (val <= 300) return "#ef4444"; 
+                return "#9333ea";                  
+            }
+        }
+
+        function updateLegendUI(scale) {
+            const container = document.getElementById('legend-threshold-labels');
+            if (scale === 'hourly') {
+                container.innerHTML = currentLang === 'en' ? `
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span> No Rain</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 0.2 - 5 mm/h</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 5 - 25 mm/h</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> 25 - 50 mm/h</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span> > 50 mm/h</span>
+                ` : `
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span> ไม่มีฝน</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> ฝนเบา (0.2 - 5 มม.)</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> ฝนปานกลาง (5 - 25 มม.)</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> ฝนหนัก (25 - 50 มม.)</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span> ฝนหนักมาก (> 50 มม.)</span>
+                `;
+            } else if (scale === 'daily') {
+                container.innerHTML = currentLang === 'en' ? `
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span> No Rain</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 0.2 - 10 mm</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 10 - 35 mm</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> 35 - 90 mm</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span> > 90 mm</span>
+                ` : `
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span> ไม่มีฝน</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 0.2 - 10 มม.</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 10 - 35 มม.</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> 35 - 90 มม.</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span> > 90 มม.</span>
+                `;
+            } else {
+                container.innerHTML = currentLang === 'en' ? `
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span> No Rain</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 0.2 - 50 mm</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 50 - 150 mm</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> 150 - 300 mm</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span> > 300 mm</span>
+                ` : `
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span> ไม่มีฝน</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 0.2 - 50 มม.</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 50 - 150 มม.</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> 150 - 300 มม.</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span> > 300 มม.</span>
+                `;
+            }
+        }
+
+        // ---- Basemap (no API key needed) ----
+        const BASEMAPS = {
+            primary: {   // Esri Light Gray: looks like CARTO light_all
+                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+                options: { maxZoom: 16, attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors' }
+            },
+            fallback: {  // OpenStreetMap, used only if Esri fails
+                url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                options: { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }
+            }
+        };
+
+        function addBasemap(mapInstance) {
+            const primary = L.tileLayer(BASEMAPS.primary.url, BASEMAPS.primary.options).addTo(mapInstance);
+            let errors = 0, switched = false;
+            primary.on('tileerror', () => {
+                if (switched || ++errors < 3) return;
+                switched = true;
+                mapInstance.removeLayer(primary);
+                L.tileLayer(BASEMAPS.fallback.url, BASEMAPS.fallback.options).addTo(mapInstance).bringToBack();
+            });
+        }
+
+        function initMapFramework() {
+            map = L.map('map').setView([13.7363, 100.6218], 11);
+            addBasemap(map);
+
+            markerLayerGroup = L.layerGroup().addTo(map);
+            nativeLayerControl = L.control.layers(null, null, { position: 'topright', collapsed: false }).addTo(map);
+
+            const overlayLayersConfig = [
+                { key: 'province', name: 'กรุงเทพมหานคร (Bangkok)', url: 'data/bangkok_province_boundary.geojson', color: '#0f172a', weight: 2.2, active: true },
+                { key: 'district', name: 'เขต (District)', url: 'data/bangkok_district_boundary.geojson', color: '#64748b', weight: 1.2, dashArray: '3, 3', active: true },
+		{ key: 'subdistrict', name: 'แขวง (Sub-District)', url: 'data/bangkok_subdistrict_boundary.geojson', color: '#64748b', weight: 0.5, dashArray: '6, 6', active: false }
+            ];
+
+            overlayLayersConfig.forEach(b => {
+                fetch(b.url)
+                    .then(response => { if (response.ok) return response.json(); throw new Error('File not found'); })
+                    .then(geoJsonData => {
+                        if (geoJsonData) {
+                            let geoLayer = L.geoJSON(geoJsonData, {
+                                interactive: false,
+                                style: { color: b.color, weight: b.weight, dashArray: b.dashArray || null, fillColor: 'transparent', fillOpacity: 0 }
+                            });
+                            nativeLayerControl.addOverlay(geoLayer, b.name);
+                            if (b.active) {
+                                geoLayer.addTo(map);
+                                geoLayer.bringToBack();
+                            }
+                        }
+                    }).catch(err => console.warn(`Layer loading skipped: ${b.url}`));
+            });
+        }
+
+        async function loadExternalDashboardAssets() {
+            try {
+                const [stnRes, timelineRes, telemetryRes] = await Promise.all([
+                    fetch('data/stations_list.json?t=' + Date.now()).then(r => r.json()),
+                    fetch('data/time_control_stations.json?t=' + Date.now()).then(r => r.json()),
+                    fetch('data/station_rainfall_matrix.json?t=' + Date.now()).then(r => r.json())
+                ]);
+                stationsData = stnRes;
+                timeControlTimeline = timelineRes;
+                stationTelemetryDB = telemetryRes;
+
+                generateAgencyDropdownFilters();
+                switchTimeScale('daily'); 
+            } catch (err) {
+                console.warn("Telemetry JSON files not fully loaded from data/", err);
+            }
+        }
+
+        function buildTimeDropdownControl() {
+            const selectEl = document.getElementById('date-select-dropdown');
+            const steps = currentTimeScale === 'hourly' ? timeControlTimeline.hourly_steps : timeControlTimeline.daily_steps;
+
+            if (!steps || steps.length === 0) return;
+
+            selectEl.innerHTML = steps.map((t, idx) => `<option value="${idx}">${t}</option>`).join('');
+            if (currentTimeIndex >= steps.length) currentTimeIndex = steps.length - 1;
+            selectEl.value = currentTimeIndex;
+        }
+
+        function generateAgencyDropdownFilters() {
+            const selectEl = document.getElementById('agency-filter');
+            const agencies = [...new Set(stationsData.map(item => item.Agency || item.agency))].filter(Boolean).sort();
+            selectEl.innerHTML = '';
+
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = "ALL";
+            defaultOpt.innerText = currentLang === 'en' ? "All Agencies (Show All)" : "ทุกหน่วยงาน (แสดงทั้งหมด)";
+            selectEl.appendChild(defaultOpt);
+
+            agencies.forEach(ag => {
+                const opt = document.createElement('option');
+                opt.value = ag;
+                opt.innerText = `${ag} Agency`;
+                selectEl.appendChild(opt);
+            });
+        }
+
+        function executeCombinedFilters() {
+            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+            const agencyVal = document.getElementById('agency-filter').value;
+
+            const evaluatedRows = stationsData.map(stn => {
+                const code = stn["Station Code"] || stn.station_code || "";
+                const record = stationTelemetryDB[String(code)];
+                let currentRain = 0;
+
+                if (record) {
+                    if (currentTimeScale === 'event') {
+                        currentRain = record.event_total || 0;
+                    } else if (currentTimeScale === 'daily') {
+                        currentRain = (record.daily_records) ? (record.daily_records[currentTimeIndex] || 0) : 0;
+                    } else {
+                        currentRain = (record.hourly_values) ? (record.hourly_values[currentTimeIndex] || 0) : 0;
+                    }
+                }
+                return { ...stn, active_rainfall: currentRain };
+            });
+
+            const filtered = evaluatedRows.filter(stn => {
+                const stnAgency = stn.Agency || stn.agency || "";
+                const stnCode = stn["Station Code"] || stn.station_code || "";
+                const stnName = stn["Station Name"] || stn.station_name || "";
+                const stnDistrict = stn.district || stn.Amphoe || "";
+
+                const matchesAgency = (agencyVal === "ALL" || stnAgency === agencyVal);
+                const queryMatch = !searchVal || 
+                    stnCode.toLowerCase().includes(searchVal) ||
+                    stnName.toLowerCase().includes(searchVal) ||
+                    stnDistrict.toLowerCase().includes(searchVal);
+
+                return matchesAgency && queryMatch;
+            });
+
+            filtered.sort((a, b) => b.active_rainfall - a.active_rainfall);
+            updateDashboardViews(filtered);
+        }
+
+        function toggleCompareSelection(code) {
+            const idx = selectedCompareCodes.indexOf(code);
+            if (idx > -1) {
+                selectedCompareCodes.splice(idx, 1);
+            } else {
+                if (selectedCompareCodes.length >= 5) {
+                    alert("สามารถเลือกเปรียบเทียบได้สูงสุด 5 สถานี");
+                    return;
+                }
+                selectedCompareCodes.push(code);
+            }
+            updateCompareFloatBar();
+            executeCombinedFilters();
+        }
+
+        function updateCompareFloatBar() {
+            const floatBar = document.getElementById('compare-float-bar');
+            const countBadge = document.getElementById('compare-count-badge');
+            countBadge.innerText = selectedCompareCodes.length;
+            if (selectedCompareCodes.length > 0) {
+                floatBar.classList.remove('hidden');
+            } else {
+                floatBar.classList.add('hidden');
+            }
+        }
+
+        function updateDashboardViews(sortedArray) {
+            markerLayerGroup.clearLayers();
+            const listContainer = document.getElementById('stations-list-container');
+            listContainer.innerHTML = "";
+
+            const foundWord = currentLang === 'en' ? `Total ${sortedArray.length} Station(s)` : `พบทั้งหมด ${sortedArray.length} สถานี`;
+            document.getElementById('counter-badge').innerText = foundWord;
+
+            sortedArray.forEach(stn => {
+                const lat = parseFloat(stn.Latitude || stn.latitude);
+                const lon = parseFloat(stn.Longitude || stn.longitude);
+                if (isNaN(lat) || isNaN(lon)) return;
+
+                const thresholdColor = getThresholdColor(stn.active_rainfall, currentTimeScale);
+
+                const marker = L.circleMarker([lat, lon], {
+                    radius: 7.5, fillColor: thresholdColor, color: '#ffffff', weight: 1.8, opacity: 1, fillOpacity: 0.85
+                });
+
+                const stnCode = String(stn["Station Code"] || stn.station_code || "");
+                const stnName = stn["Station Name"] || stn.station_name || "";
+                const stnAgency = stn.Agency || stn.agency || "";
+                const stnDistrict = stn.district || stn.Amphoe || "-";
+
+                marker.bindPopup(`
+                    <div class="text-xs space-y-1 font-sans">
+                        <b>[${stnAgency}] ${stnName} (${stnCode})</b><br>
+                        อำเภอ: ${stnDistrict}<br>
+                        ปริมาณฝน: <span style="font-weight:bold;color:${thresholdColor}">${stn.active_rainfall.toFixed(1)} มม.</span>
+                    </div>
+                `);
+                markerLayerGroup.addLayer(marker);
+
+                const isChecked = selectedCompareCodes.includes(stnCode);
+
+                const card = document.createElement('div');
+                card.className = `bg-white p-4 border rounded-lg shadow-sm hover:border-blue-400 transition flex items-start justify-between gap-3 cursor-pointer ${isChecked ? 'border-blue-500 bg-blue-50/20' : 'border-slate-200/80'}`;
+                card.innerHTML = `
+                    <div class="flex items-center pt-1" onclick="event.stopPropagation()">
+                        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCompareSelection('${stnCode}')" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer">
+                    </div>
+                    <div class="space-y-1 min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-slate-200">${stnCode}</span>
+                            <span class="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase">${stnAgency}</span>
+                        </div>
+                        <h4 class="text-sm font-bold text-slate-900 tracking-tight truncate" title="${stnName}">${stnName}</h4>
+                        <p class="text-xs text-slate-500 font-medium flex items-center gap-1">
+                            <i data-lucide="map-pin" class="w-3 h-3 text-slate-400 shrink-0"></i> ${stnDistrict}, กรุงเทพมหานคร
+                        </p>
+                    </div>
+                    <div class="text-right shrink-0 flex flex-col items-end justify-between self-stretch pl-2">
+                        <span class="text-xs font-black px-2 py-0.5 rounded font-mono" style="background-color:${thresholdColor}15; color:${thresholdColor === '#e2e8f0' ? '#475569' : thresholdColor}">
+                            ${stn.active_rainfall.toFixed(1)} mm
+                        </span>
+                        <button onclick="event.stopPropagation(); triggerGraphModal('${stnCode}', '${stnName}')" class="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-blue-600 text-white rounded text-xs font-semibold tracking-tight transition shadow-sm">
+                            <i data-lucide="area-chart" class="w-3 h-3"></i> ดูกราฟ
+                        </button>
+                    </div>
+                `;
+
+                card.onclick = () => {
+                    map.setView([lat, lon], 13);
+                    marker.openPopup();
+                };
+
+                listContainer.appendChild(card);
+            });
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        window.switchTimeScale = function(scaleKey) {
+            currentTimeScale = scaleKey;
+
+            const btnHourly = document.getElementById('btn-scale-hourly');
+            const btnDaily = document.getElementById('btn-scale-daily');
+            const btnEvent = document.getElementById('btn-scale-event');
+            const dateStepperPanel = document.getElementById('date-stepper-panel');
+
+            [btnHourly, btnDaily, btnEvent].forEach(btn => {
+                btn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900";
+            });
+
+            if (scaleKey === 'hourly') {
+                btnHourly.className = "px-3 py-1.5 text-xs font-bold rounded-lg transition-all text-blue-700 bg-white shadow-sm";
+                dateStepperPanel.style.display = "flex";
+            } else if (scaleKey === 'daily') {
+                btnDaily.className = "px-3 py-1.5 text-xs font-bold rounded-lg transition-all text-blue-700 bg-white shadow-sm";
+                dateStepperPanel.style.display = "flex";
+            } else {
+                btnEvent.className = "px-3 py-1.5 text-xs font-bold rounded-lg transition-all text-blue-700 bg-white shadow-sm";
+                dateStepperPanel.style.display = "none";
+            }
+
+            buildTimeDropdownControl();
+            updateLegendUI(scaleKey);
+            executeCombinedFilters();
+        };
+
+        // Single Station Mass Curve Modal (Handling Missing/NaN data)
+        window.triggerGraphModal = function(code, name) {
+            const telemetry = stationTelemetryDB[String(code)];
+            if (!telemetry || !telemetry.hourly_values) {
+                alert(`ไม่พบข้อมูลอนุกรมเวลาของสถานี: ${code}`);
+                return;
+            }
+
+            document.getElementById('modal-station-title').innerText = `กราฟปริมาณฝนสะสม — ${name}`;
+            document.getElementById('modal-station-subtitle').innerText = `รหัสสถานี: ${code}`;
+            document.getElementById('graph-modal-overlay').classList.remove('hidden');
+
+            let runningSum = 0;
+            let hasValidData = false;
+
+            const cumulativeSeries = telemetry.hourly_values.map(val => {
+                if (val === null || val === undefined || isNaN(val)) {
+                    return null; // Missing data breaks line
+                }
+                runningSum += val;
+                hasValidData = true;
+                return runningSum;
+            });
+
+            const barValues = telemetry.hourly_values.map(val => {
+                return (val === null || val === undefined || isNaN(val)) ? null : val;
+            });
+
+            const ctx = document.getElementById('mass-curve-canvas').getContext('2d');
+            if (popupChartInstance) popupChartInstance.destroy();
+
+            popupChartInstance = new Chart(ctx, {
+                data: {
+                    labels: telemetry.hourly_timestamps,
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: 'ปริมาณฝนสะสม (มม.)',
+                            data: cumulativeSeries,
+                            borderColor: '#0f172a',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            spanGaps: false, // Discontinue line on missing data
+                            yAxisID: 'yLeft'
+                        },
+                        {
+                            type: 'bar',
+                            label: 'ความเข้มฝนรายชั่วโมง (มม./ชม.)',
+                            data: barValues,
+                            backgroundColor: 'rgba(29, 78, 216, 0.4)',
+                            borderColor: '#1d4ed8',
+                            borderWidth: 1,
+                            yAxisID: 'yRight'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { maxRotation: 45, font: { size: 9 } } },
+                        yLeft: { type: 'linear', position: 'left', title: { display: true, text: 'ฝนสะสม (มม.)' } },
+                        yRight: { type: 'linear', position: 'right', reverse: true, title: { display: true, text: 'ความเข้มฝน (มม./ชม.)' } }
+                    }
+                }
+            });
+        };
+
+        // Multi-Station Mass Curve Comparison Modal
+        window.triggerCompareModal = function() {
+            if (selectedCompareCodes.length === 0) return;
+
+            document.getElementById('compare-modal-overlay').classList.remove('hidden');
+
+            let globalTimestamps = [];
+            const datasets = [];
+
+            selectedCompareCodes.forEach((code, idx) => {
+                const telemetry = stationTelemetryDB[String(code)];
+                const stnObj = stationsData.find(s => String(s["Station Code"] || s.station_code) === String(code));
+                const stnName = stnObj ? (stnObj["Station Name"] || stnObj.station_name) : code;
+
+                if (telemetry && telemetry.hourly_values) {
+                    if (globalTimestamps.length === 0) {
+                        globalTimestamps = telemetry.hourly_timestamps;
+                    }
+
+                    let runningSum = 0;
+                    const cumulativeSeries = telemetry.hourly_values.map(val => {
+                        if (val === null || val === undefined || isNaN(val)) {
+                            return null;
+                        }
+                        runningSum += val;
+                        return runningSum;
+                    });
+
+                    datasets.push({
+                        label: `${stnName} (${code})`,
+                        data: cumulativeSeries,
+                        borderColor: COLOR_PALETTE[idx % COLOR_PALETTE.length],
+                        backgroundColor: COLOR_PALETTE[idx % COLOR_PALETTE.length],
+                        borderWidth: 2.5,
+                        pointRadius: 0,
+                        spanGaps: false // Discontinue line on missing data
+                    });
+                }
+            });
+
+            const ctx = document.getElementById('compare-canvas').getContext('2d');
+            if (compareChartInstance) compareChartInstance.destroy();
+
+            compareChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: globalTimestamps,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { size: 11, weight: 'bold' } } }
+                    },
+                    scales: {
+                        x: { ticks: { maxRotation: 45, font: { size: 9 } } },
+                        y: { type: 'linear', title: { display: true, text: 'ปริมาณฝนสะสม (มม.)', font: { weight: 'bold' } } }
+                    }
+                }
+            });
+        };
+
+        window.closeGraphModal = function() {
+            document.getElementById('graph-modal-overlay').classList.add('hidden');
+        };
+
+        window.closeCompareModal = function() {
+            document.getElementById('compare-modal-overlay').classList.add('hidden');
+        };
+
+        window.adjustTimeIndex = function(direction) {
+            const steps = currentTimeScale === 'hourly' ? timeControlTimeline.hourly_steps : timeControlTimeline.daily_steps;
+            let nextIndex = currentTimeIndex + direction;
+            if (nextIndex >= 0 && nextIndex < steps.length) {
+                currentTimeIndex = nextIndex;
+                document.getElementById('date-select-dropdown').value = nextIndex;
+                executeCombinedFilters();
+            }
+        };
+
+        window.onTimeDropdownChange = function(val) {
+            currentTimeIndex = parseInt(val);
+            executeCombinedFilters();
+        };
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'th' ? 'en' : 'th';
+            document.getElementById('langText').innerText = currentLang === 'th' ? 'TH / ภาษาไทย' : 'EN / English';
+
+            document.querySelectorAll('.data-lang').forEach(el => {
+                const text = el.getAttribute(`data-${currentLang}`);
+                if (text) el.innerText = text;
+            });
+
+            const searchInput = document.getElementById('search-input');
+            const ph = searchInput.getAttribute(`data-placeholder-${currentLang}`);
+            if (ph) searchInput.placeholder = ph;
+
+            updateLegendUI(currentTimeScale);
+            generateAgencyDropdownFilters();
+            executeCombinedFilters();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMapFramework();
+            updateLegendUI('daily');
+            loadExternalDashboardAssets();
+            document.getElementById('search-input').addEventListener('input', executeCombinedFilters);
+            document.getElementById('agency-filter').addEventListener('change', executeCombinedFilters);
+        });
+    </script>
+</body>
+</html>
